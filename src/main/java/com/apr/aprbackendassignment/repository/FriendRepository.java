@@ -1,8 +1,11 @@
 package com.apr.aprbackendassignment.repository;
 
+import com.apr.aprbackendassignment.common.response.PageResponse;
+import com.apr.aprbackendassignment.model.entity.Users;
 import com.apr.aprbackendassignment.repository.jpaRepository.FriendshipJPARepository;
 import com.apr.aprbackendassignment.repository.jpaRepository.UsersJPARepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 /**
  * =====================================================
@@ -21,4 +24,20 @@ public class FriendRepository {
     private final FriendshipJPARepository friendshipJPARepository;
     private final UsersJPARepository usersJPARepository;
 
+    public int selectAllUsers() {
+        return usersJPARepository.findAll().size();
+    }
+
+    public void makeMillionUsers(String userName) {
+        for (long i = 1; i <= 10000; i++) {
+            Users user = Users.builder()
+                    .name(userName + i)
+                    .build();
+            usersJPARepository.save(user);
+        }
+    }
+
+    public PageResponse<Object> getFriendsList(Long currentUserId, Pageable pageable) {
+        return null;
+    }
 }

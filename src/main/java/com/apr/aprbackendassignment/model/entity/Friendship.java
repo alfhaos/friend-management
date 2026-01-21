@@ -1,5 +1,6 @@
 package com.apr.aprbackendassignment.model.entity;
 
+import com.apr.aprbackendassignment.common.entity.CommTimeEntity;
 import com.apr.aprbackendassignment.model.constant.FRIENDSHIP_STATUS;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -23,7 +24,7 @@ import lombok.NoArgsConstructor;
                 @UniqueConstraint(columnNames = {"requester_id", "receiver_id"})
         })
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Friendship {
+public class Friendship extends CommTimeEntity {
 
     @Id
     @GeneratedValue

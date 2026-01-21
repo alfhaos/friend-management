@@ -28,7 +28,4 @@ public class CommTimeEntity {
     @CreatedDate
     @Comment("생성일")
     protected LocalDateTime createdTime;
-
-    @Comment("생성자 ID")
-    protected Long createUserId;
 }
