@@ -7,6 +7,10 @@ spring:
     driver-class-name: org.h2.Driver
     username: root
     password:
+
+  jackson:
+      default-property-inclusion: non_null
+
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
