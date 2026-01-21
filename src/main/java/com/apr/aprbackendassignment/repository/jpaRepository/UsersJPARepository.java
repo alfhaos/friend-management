@@ -1,5 +1,7 @@
 package com.apr.aprbackendassignment.repository.jpaRepository;
 
+import com.apr.aprbackendassignment.common.exception.CommException;
+import com.apr.aprbackendassignment.common.response.CommResponseStatus;
 import com.apr.aprbackendassignment.model.entity.Users;
 import org.springframework.data.jpa.repository.JpaRepository;
 /**
@@ -13,4 +15,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * =====================================================
  */
 public interface UsersJPARepository extends JpaRepository<Users, Long> {
+    default Users findByIdOrThrow(Long currentUserId) {
+        return  findById(currentUserId).orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_USER));
+    };
 }

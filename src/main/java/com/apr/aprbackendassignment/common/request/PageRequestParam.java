@@ -5,6 +5,7 @@ import com.apr.aprbackendassignment.common.response.CommResponseStatus;
 import com.apr.aprbackendassignment.model.constant.SORT_GROUP;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.domain.PageRequest;
@@ -22,6 +23,7 @@ import org.springframework.data.domain.Sort;
  */
 @Getter
 @Setter
+@AllArgsConstructor
 public class PageRequestParam {
 
     private static final String DELIMITER = ",";
@@ -41,12 +43,12 @@ public class PageRequestParam {
             String sortDirection = sortInfo[1];
 
             // Enum 매핑
-            String groupName = SORT_GROUP.from(sortField);
+            String fieldName = SORT_GROUP.from(sortField).getFieldName();
 
             Sort.Direction direction =
                     Sort.Direction.fromString(sortDirection);
 
-            return PageRequest.of(page, maxSize, Sort.by(direction, groupName));
+            return PageRequest.of(page, maxSize, Sort.by(direction, fieldName));
         } catch (Exception e) {
             throw new CommException(CommResponseStatus.BAD_REQUEST);
         }

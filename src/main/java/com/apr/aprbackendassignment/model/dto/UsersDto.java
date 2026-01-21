@@ -15,13 +15,13 @@ import lombok.Getter;
  */
 @Getter
 @Builder
-public class UserDto {
+public class UsersDto {
 
     private Long id;
 
     // 엔티티를 DTO로 변환하는 메서드
-    public UserDto fromEntity(Users user) {
-        return UserDto.builder()
+    public static UsersDto fromEntity(Users user) {
+        return UsersDto.builder()
                 .id(user.getId())
                 .build();
     }

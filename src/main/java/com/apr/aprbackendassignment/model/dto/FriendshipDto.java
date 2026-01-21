@@ -1,10 +1,14 @@
 package com.apr.aprbackendassignment.model.dto;
 
 import com.apr.aprbackendassignment.model.constant.FRIENDSHIP_STATUS;
+import com.apr.aprbackendassignment.model.entity.Friendship;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.data.domain.Page;
+
+import java.time.LocalDateTime;
 
 /**
  * =====================================================
@@ -26,4 +30,20 @@ public class FriendshipDto {
     private Long requester;
     private Long receiver;
     private FRIENDSHIP_STATUS status;
+    private LocalDateTime approvedAt;
+
+
+    // 친구 목록 조회에서 friendshipPage 를 FriendshipDto Page 로 변환
+    public static Page<FriendshipDto> fromEntityPage(Page<Friendship> friendshipPage, Long CURRENT_USER_ID) {
+        return friendshipPage.map(f -> {
+            Long friendId = f.getRequester().getId().equals(CURRENT_USER_ID)
+                    ? f.getReceiver().getId() :  f.getRequester().getId();
+            return FriendshipDto.builder()
+                    .id(friendId)
+                    .requester(f.getRequester().getId())
+                    .receiver(f.getReceiver().getId())
+                    .approvedAt(f.getCreatedTime())
+                    .build();
+        });
+    }
 }

@@ -25,6 +25,7 @@ public enum CommResponseStatus {
     // Common
     BAD_REQUEST(HttpStatus.BAD_REQUEST, "BAD_REQUEST", "Bad Request"),
     NOT_FOUND(HttpStatus.NOT_FOUND, "NOT_FOUND", "Not Found"),
+    NOT_FOUND_USER(HttpStatus.INTERNAL_SERVER_ERROR, "NOT_FOUND_USER", "Not Found User"),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", "Internal Server Error");
 
     private final HttpStatus httpStatus;

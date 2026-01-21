@@ -20,19 +20,17 @@ import java.util.Arrays;
 @Getter
 @AllArgsConstructor
 public enum SORT_GROUP {
-    APPROVEDAT("approvedat", "APPROVEDAT"),
-    REQUESTAT("requestat", "REQUESTAT");
+    APPROVEDAT("createdTime"),
+    REQUESTAT("createdTime");
 
-    private final String code;
-    private final String codeName;
+    private final String fieldName;
 
-    public static String from(String key) {
+    public static SORT_GROUP from(String key) {
         return Arrays.stream(values())
-                .filter(v -> v.code.equalsIgnoreCase(key))
+                .filter(v -> v.name().equalsIgnoreCase(key))
                 .findFirst()
                 .orElseThrow(() ->
                         new CommException(CommResponseStatus.BAD_REQUEST)
-                )
-                .codeName;
+                );
     }
 }

@@ -1,6 +1,5 @@
 package com.apr.aprbackendassignment.model.entity;
 
-import com.apr.aprbackendassignment.model.dto.UserDto;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
