@@ -1,7 +1,12 @@
 package com.apr.aprbackendassignment.repository.jpaRepository;
 
 import com.apr.aprbackendassignment.model.entity.Friendship;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
 /**
  * =====================================================
  * Class Name   : FriendshipJPARepository
@@ -13,4 +18,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * =====================================================
  */
 public interface FriendshipJPARepository extends JpaRepository<Friendship, Long> {
+    @Query("""
+    SELECT f
+    FROM Friendship f
+    WHERE (f.requester.id = :userId OR f.receiver.id = :userId)
+    AND f.status = 'ACCEPTED'
+    """)
+    Page<Friendship> getFriendsList(
+            @Param("userId") Long userId,
+            Pageable pageable
+    );
 }

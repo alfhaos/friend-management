@@ -1,8 +1,8 @@
 package com.apr.aprbackendassignment.model.entity;
 
-import com.apr.aprbackendassignment.model.dto.UserDto;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 /**
@@ -25,4 +25,13 @@ public class Users {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
     private Long id;
+
+    @Column(name = "user_name")
+    private String name;
+
+    @Builder
+    private Users(String name) {
+        this.name = name;
+    }
+
 }

@@ -10,6 +10,7 @@
     main
      ├─ feature/기능명
      ├─ fix/버그명
+     ├─ dev
 
 ### 규칙
 

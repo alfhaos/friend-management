@@ -1,9 +1,16 @@
+server:
+  port: 8080
+
 spring:
   datasource:
-    url: jdbc:h2:./H2/apr
+    url: jdbc:h2:./H2/apr;AUTO_SERVER=TRUE
     driver-class-name: org.h2.Driver
     username: root
     password:
+
+  jackson:
+      default-property-inclusion: non_null
+
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
@@ -12,3 +19,19 @@ spring:
 logging:
   level:
     root: INFO
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    display-request-duration: true
+
+  api-docs:
+    path: /v3/api-docs
+
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
+  packages-to-scan:
+    - com.apr.aprbackendassignment.controller
+

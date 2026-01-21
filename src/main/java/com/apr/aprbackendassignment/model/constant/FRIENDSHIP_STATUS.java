@@ -17,11 +17,8 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum FRIENDSHIP_STATUS {
 
-    REQUESTED("REQ", "REQUESTED"),
-    ACCEPTED("ACC", "ACCEPTED"),
-    REJECTED("REJ", "REJECTED"),
-    BLOCKED("BLO", "BLOCKED");
-
-    private final String code;
-    private final String codeName;
+    REQUESTED,
+    ACCEPTED,
+    REJECTED,
+    BLOCKED;
 }

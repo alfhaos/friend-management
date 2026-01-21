@@ -2,6 +2,7 @@ package com.apr.aprbackendassignment.common.entity;
 
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.PrePersist;
 import lombok.Getter;
 import org.hibernate.annotations.Comment;
 import org.springframework.data.annotation.CreatedDate;
@@ -29,6 +30,8 @@ public class CommTimeEntity {
     @Comment("생성일")
     protected LocalDateTime createdTime;
 
-    @Comment("생성자 ID")
-    protected Long createUserId;
+    @PrePersist
+    protected void onCreate() {
+        this.createdTime = LocalDateTime.now();
+    }
 }
