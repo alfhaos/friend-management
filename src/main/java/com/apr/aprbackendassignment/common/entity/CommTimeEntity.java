@@ -32,6 +32,10 @@ public class CommTimeEntity {
 
     @PrePersist
     protected void onCreate() {
-        this.createdTime = LocalDateTime.now();
+
+        if(this.createdTime == null) {
+
+            this.createdTime = LocalDateTime.now();
+        }
     }
 }

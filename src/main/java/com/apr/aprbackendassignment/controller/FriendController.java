@@ -3,7 +3,9 @@ package com.apr.aprbackendassignment.controller;
 import com.apr.aprbackendassignment.common.request.PageRequestParam;
 import com.apr.aprbackendassignment.common.response.CommResponse;
 import com.apr.aprbackendassignment.common.response.PageResponse;
-import com.apr.aprbackendassignment.model.dto.FriendshipDto;
+import com.apr.aprbackendassignment.model.constant.WINDOW_SLIDING;
+import com.apr.aprbackendassignment.model.dto.response.FriendsRequestsResponse;
+import com.apr.aprbackendassignment.model.dto.response.FriendsResponse;
 import com.apr.aprbackendassignment.service.FriendService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -13,6 +15,7 @@ import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 /**
  * =====================================================
@@ -40,9 +43,19 @@ public class FriendController {
 
         Pageable pageable = param.toPageable();
 
-        PageResponse<FriendshipDto> pageResponse = friendService.getFriendsList(pageable);
+        PageResponse<FriendsResponse> pageResponse = friendService.getFriendsList(pageable);
         return new CommResponse<>(pageResponse);
     }
+    @Operation(summary = "받은 친구 신청 목록 조회")
+    @GetMapping("/requests")
+    public CommResponse<PageResponse<?>> getReceiveFriendsList(@ParameterObject PageRequestParam param
+            , @RequestParam("window") String windowParam) {
 
+        Pageable pageable = param.toPageable();
+        WINDOW_SLIDING windowSliding = WINDOW_SLIDING.convertWindowSliding(windowParam);
+
+        PageResponse<FriendsRequestsResponse> pageResponse = friendService.getReceiveFriendsList(pageable, windowSliding);
+        return new CommResponse<>(pageResponse);
+    }
 
 }

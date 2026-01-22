@@ -29,9 +29,10 @@ public class Users {
     @Column(name = "user_name")
     private String name;
 
-    @Builder
-    private Users(String name) {
+    public Users(String name) {
         this.name = name;
     }
-
+    public static Users create (String name) {
+       return new Users(name);
+    }
 }
