@@ -12,19 +12,37 @@ package com.apr.aprbackendassignment.common.response;
  *  - 실패 응답 생성: error(CommResponseStatus status) 메서드를 통해 실패 응답을 생성
  * =====================================================
  */
-public record CommResponse<T>(T data) {
+public record CommResponse<T>(
+        String code,
+        String message,
+        Integer status,
+        T data) {
     // 성공
     public static <T> CommResponse<T> success(T data) {
         return new CommResponse<>(
+                null,
+                null,
+                null,
                 data
+        );
+    }
+    // 성공 (데이터 없음)
+    public static CommResponse<CommResponseStatus> success() {
+        return new CommResponse<>(
+                CommResponseStatus.SUCCESS.getCode(),
+                CommResponseStatus.SUCCESS.getMessage(),
+                CommResponseStatus.SUCCESS.getHttpStatus().value(),
+                null
         );
     }
 
     // 실패
     public static CommResponse<?> error(CommResponseStatus status) {
         return new CommResponse<>(
-                status
+                status.getCode(),
+                status.getMessage(),
+                status.getHttpStatus().value(),
+                null
         );
     }
-
 }

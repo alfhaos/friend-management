@@ -1,10 +1,16 @@
 package com.apr.aprbackendassignment.service.impl;
 
+import com.apr.aprbackendassignment.common.exception.CommException;
+import com.apr.aprbackendassignment.common.response.CommResponseStatus;
 import com.apr.aprbackendassignment.common.response.PageResponse;
+import com.apr.aprbackendassignment.model.constant.FRIENDSHIP_STATUS;
 import com.apr.aprbackendassignment.model.constant.WINDOW_SLIDING;
 import com.apr.aprbackendassignment.model.dto.UsersDto;
+import com.apr.aprbackendassignment.model.dto.request.FriendRequest;
 import com.apr.aprbackendassignment.model.dto.response.FriendsRequestsResponse;
 import com.apr.aprbackendassignment.model.dto.response.FriendsResponse;
+import com.apr.aprbackendassignment.model.entity.Friendship;
+import com.apr.aprbackendassignment.model.entity.Users;
 import com.apr.aprbackendassignment.repository.FriendRepository;
 import com.apr.aprbackendassignment.service.FriendService;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +18,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 /**
  * =====================================================
@@ -30,8 +38,7 @@ public class FriendServiceImpl implements FriendService {
     private static final Long CURRENT_USER_ID = 1L;
 
     private final FriendRepository friendRepository;
-
-    @Transactional
+    @Transactional(readOnly = true)
     @Override
     public PageResponse<FriendsResponse> getFriendsList(Pageable pageable) {
         UsersDto currentUser = friendRepository.findUserById(CURRENT_USER_ID);
@@ -43,7 +50,7 @@ public class FriendServiceImpl implements FriendService {
                 dtoPage.getContent()
         );
     }
-
+    @Transactional(readOnly = true)
     @Override
     public PageResponse<FriendsRequestsResponse> getReceiveFriendsList(Pageable pageable, WINDOW_SLIDING windowSliding) {
         UsersDto currentUser = friendRepository.findUserById(CURRENT_USER_ID);
@@ -54,5 +61,23 @@ public class FriendServiceImpl implements FriendService {
                 (int) dtoPage.getTotalElements(),
                 dtoPage.getContent()
         );
+    }
+
+    @Transactional
+    @Override
+    public void requestFriend(Long xUserId, FriendRequest friendRequest) {
+        Users currentUser = friendRepository.findUserByIdOrThrow(xUserId);
+        Long currentUserId = currentUser.getId();
+
+        // 조회했을떄 존재하지 않는 상대방일 경우 예외 처리
+        Users targetUser = friendRepository.findUserByIdOrThrow(friendRequest.getTargetUserId());
+        Long targetUserId = targetUser.getId();
+
+        // 자기자신에게 친구 요청 보낼 경우 예외 처리
+        if(currentUserId.equals(targetUserId)) {
+            throw new CommException(CommResponseStatus.SELF_FRIEND_REQUEST);
+        }
+
+        friendRepository.requestFriend(currentUser, targetUser);
     }
 }

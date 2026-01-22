@@ -20,7 +20,6 @@ public class H2Test {
 
     @Test
     public void testH2Connection() throws Exception {
-        // Test logic to verify H2 database connection
         try(Connection conn = dataSource.getConnection()) {
             log.info("H2 Database Connection Successful: {}", conn);
             assertNotNull(conn);
