@@ -5,6 +5,9 @@ import com.apr.aprbackendassignment.model.constant.FRIENDSHIP_STATUS;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
+import java.util.UUID;
+
 /**
  * =====================================================
  * Class Name   : Friendship
@@ -25,8 +28,7 @@ import lombok.*;
 public class Friendship extends CommTimeEntity {
 
     @Id
-    @GeneratedValue
-    private Long id;
+    private UUID id = UUID.randomUUID();
 
     @ManyToOne
     @JoinColumn(name = "requester_id")
@@ -38,6 +40,21 @@ public class Friendship extends CommTimeEntity {
 
     @Enumerated(EnumType.STRING)
     private FRIENDSHIP_STATUS status;
+
+    public Friendship(Users requester, Users receiver, FRIENDSHIP_STATUS status) {
+        this.requester = requester;
+        this.receiver = receiver;
+        this.status = status;
+    }
+
+    public static Friendship create(Users requester, Users receiver, FRIENDSHIP_STATUS status) {
+        return new Friendship(requester, receiver, status);
+    }
+
+    // 테스트 코드로 친구 관계를 생성할때 날짜별로 생성하기 위해 추가
+    public void updateRequestedAt(LocalDateTime time) {
+        this.createdTime = time;
+    }
 }
 
 

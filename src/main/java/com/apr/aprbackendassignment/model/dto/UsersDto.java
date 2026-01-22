@@ -3,6 +3,9 @@ package com.apr.aprbackendassignment.model.dto;
 import com.apr.aprbackendassignment.model.entity.Users;
 import lombok.Builder;
 import lombok.Getter;
+
+import java.util.List;
+
 /**
  * =====================================================
  * Class Name   : UserDto
@@ -24,5 +27,11 @@ public class UsersDto {
         return UsersDto.builder()
                 .id(user.getId())
                 .build();
+    }
+
+    public static List<UsersDto> fromEntityList(List<Users> usersList) {
+        return usersList.stream()
+                .map(UsersDto::fromEntity)
+                .toList();
     }
 }

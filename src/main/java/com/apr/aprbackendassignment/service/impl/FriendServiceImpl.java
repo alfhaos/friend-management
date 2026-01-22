@@ -1,10 +1,10 @@
 package com.apr.aprbackendassignment.service.impl;
 
 import com.apr.aprbackendassignment.common.response.PageResponse;
-import com.apr.aprbackendassignment.model.dto.FriendshipDto;
+import com.apr.aprbackendassignment.model.constant.WINDOW_SLIDING;
 import com.apr.aprbackendassignment.model.dto.UsersDto;
-import com.apr.aprbackendassignment.model.entity.Friendship;
-import com.apr.aprbackendassignment.model.entity.Users;
+import com.apr.aprbackendassignment.model.dto.response.FriendsRequestsResponse;
+import com.apr.aprbackendassignment.model.dto.response.FriendsResponse;
 import com.apr.aprbackendassignment.repository.FriendRepository;
 import com.apr.aprbackendassignment.service.FriendService;
 import lombok.RequiredArgsConstructor;
@@ -33,10 +33,22 @@ public class FriendServiceImpl implements FriendService {
 
     @Transactional
     @Override
-    public PageResponse<FriendshipDto> getFriendsList(Pageable pageable) {
+    public PageResponse<FriendsResponse> getFriendsList(Pageable pageable) {
         UsersDto currentUser = friendRepository.findUserById(CURRENT_USER_ID);
-        Page<FriendshipDto> dtoPage = friendRepository.getFriendsList(currentUser.getId(), pageable);
+        Page<FriendsResponse> dtoPage = friendRepository.getFriendsList(currentUser.getId(), pageable);
 
+        return new PageResponse<>(
+                dtoPage.getTotalPages(),
+                (int) dtoPage.getTotalElements(),
+                dtoPage.getContent()
+        );
+    }
+
+    @Override
+    public PageResponse<FriendsRequestsResponse> getReceiveFriendsList(Pageable pageable, WINDOW_SLIDING windowSliding) {
+        UsersDto currentUser = friendRepository.findUserById(CURRENT_USER_ID);
+
+        Page<FriendsRequestsResponse> dtoPage = friendRepository.getFriendsReceiveList(currentUser.getId(), pageable, windowSliding);
         return new PageResponse<>(
                 dtoPage.getTotalPages(),
                 (int) dtoPage.getTotalElements(),

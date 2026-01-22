@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
+
 /**
  * =====================================================
  * Class Name   : FriendshipJPARepository
@@ -28,4 +30,20 @@ public interface FriendshipJPARepository extends JpaRepository<Friendship, Long>
             @Param("userId") Long userId,
             Pageable pageable
     );
+    @Query("""
+    SELECT f
+    FROM Friendship f
+    WHERE f.receiver.id = :userId
+      AND (
+           :start IS NULL 
+           OR (f.createdTime >= :start AND f.createdTime < :end)
+      )
+    """)
+    Page<Friendship> getFriendsReceiveList(
+            @Param("userId") Long currentUserId,
+            Pageable pageable,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end
+    );
+
 }
