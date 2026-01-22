@@ -1,11 +1,17 @@
 package com.apr.aprbackendassignment.controller;
 
+import com.apr.aprbackendassignment.common.exception.CommException;
 import com.apr.aprbackendassignment.common.request.PageRequestParam;
 import com.apr.aprbackendassignment.common.response.CommResponse;
+import com.apr.aprbackendassignment.common.response.CommResponseStatus;
 import com.apr.aprbackendassignment.common.response.PageResponse;
 import com.apr.aprbackendassignment.model.constant.WINDOW_SLIDING;
+import com.apr.aprbackendassignment.model.dto.UsersDto;
+import com.apr.aprbackendassignment.model.dto.request.FriendRequest;
 import com.apr.aprbackendassignment.model.dto.response.FriendsRequestsResponse;
 import com.apr.aprbackendassignment.model.dto.response.FriendsResponse;
+import com.apr.aprbackendassignment.model.entity.Friendship;
+import com.apr.aprbackendassignment.model.entity.Users;
 import com.apr.aprbackendassignment.service.FriendService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -13,10 +19,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
 /**
  * =====================================================
  * Class Name   : FriendController
@@ -35,6 +39,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 public class FriendController {
 
+    private static final String xUserIdHeader = "X-user-Id";
     private final FriendService friendService;
 
     @Operation(summary = "친구 목록 조회")
@@ -44,7 +49,7 @@ public class FriendController {
         Pageable pageable = param.toPageable();
 
         PageResponse<FriendsResponse> pageResponse = friendService.getFriendsList(pageable);
-        return new CommResponse<>(pageResponse);
+        return CommResponse.success(pageResponse);
     }
     @Operation(summary = "받은 친구 신청 목록 조회")
     @GetMapping("/requests")
@@ -55,7 +60,15 @@ public class FriendController {
         WINDOW_SLIDING windowSliding = WINDOW_SLIDING.convertWindowSliding(windowParam);
 
         PageResponse<FriendsRequestsResponse> pageResponse = friendService.getReceiveFriendsList(pageable, windowSliding);
-        return new CommResponse<>(pageResponse);
+        return CommResponse.success(pageResponse);
     }
+    @Operation(summary = "친구 신청")
+    @PostMapping("/request")
+    public CommResponse<CommResponseStatus> requestFriend(
+            @RequestHeader(xUserIdHeader) Long xUserId,
+            @RequestBody FriendRequest friendRequest) {
 
+        friendService.requestFriend(xUserId, friendRequest);
+        return CommResponse.success();
+    }
 }

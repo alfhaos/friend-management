@@ -1,6 +1,6 @@
 server:
   port: 8080
-
+# ================== DB 설정 ==================
 spring:
   datasource:
     url: jdbc:h2:./H2/apr;AUTO_SERVER=TRUE
@@ -10,16 +10,17 @@ spring:
 
   jackson:
       default-property-inclusion: non_null
-
+  # ================== JPA 설정 ==================
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
       ddl-auto: update
     show-sql: true
+# ================== LOG 설정 ==================
 logging:
   level:
     root: INFO
-
+# ================== SWAGGER 설정 ==================
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
@@ -35,3 +36,12 @@ springdoc:
   packages-to-scan:
     - com.apr.aprbackendassignment.controller
 
+# ================== REQUEST 제한 설정 ==================
+limit:
+  max-requests: 10
+  window-milli-seconds: 1000
+  paths:
+    - /api/friends/request
+  exclude-paths:
+    - /swagger-ui/**
+    - /v3/api-docs/**
