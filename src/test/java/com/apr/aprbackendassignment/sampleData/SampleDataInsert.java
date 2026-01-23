@@ -4,9 +4,8 @@ import com.apr.aprbackendassignment.model.constant.FRIENDSHIP_STATUS;
 import com.apr.aprbackendassignment.model.constant.WINDOW_SLIDING;
 import com.apr.aprbackendassignment.model.entity.Friendship;
 import com.apr.aprbackendassignment.model.entity.Users;
-import com.apr.aprbackendassignment.repository.FriendRepository;
-import com.apr.aprbackendassignment.repository.jpaRepository.FriendshipJPARepository;
-import com.apr.aprbackendassignment.repository.jpaRepository.UsersJPARepository;
+import com.apr.aprbackendassignment.repository.FriendshipJPARepository;
+import com.apr.aprbackendassignment.repository.UsersJPARepository;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,9 +35,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class SampleDataInsert {
 
     @Autowired
-    private FriendRepository friendRepository;
-
-    @Autowired
     private UsersJPARepository usersJPARepository;
     @Autowired
     private FriendshipJPARepository friendshipJPARepository;
@@ -54,10 +50,14 @@ class SampleDataInsert {
     @Transactional
     @Rollback(false)
     void makeMillionUsers() {
-        friendRepository.makeMillionUsers(UserName);
+        for (long i = 1; i <= 10000; i++) {
+            Users user = Users.create(UserName + i);
+            usersJPARepository.save(user);
+        }
+
         log.info("Made milion users with base name: {}", UserName);
 
-        int userCount = friendRepository.selectAllUsersLength();
+        int userCount = usersJPARepository.findAll().size();
         assertTrue(userCount >= 10000, "사용자 수는 10000 이상이어야 합니다");
     }
 

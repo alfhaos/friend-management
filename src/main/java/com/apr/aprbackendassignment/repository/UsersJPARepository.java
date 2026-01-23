@@ -1,4 +1,4 @@
-package com.apr.aprbackendassignment.repository.jpaRepository;
+package com.apr.aprbackendassignment.repository;
 
 import com.apr.aprbackendassignment.common.exception.CommException;
 import com.apr.aprbackendassignment.common.response.CommResponseStatus;
