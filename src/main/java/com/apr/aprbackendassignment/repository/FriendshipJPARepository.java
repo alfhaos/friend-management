@@ -1,4 +1,4 @@
-package com.apr.aprbackendassignment.repository.jpaRepository;
+package com.apr.aprbackendassignment.repository;
 
 import com.apr.aprbackendassignment.common.exception.CommException;
 import com.apr.aprbackendassignment.common.response.CommResponseStatus;
@@ -51,18 +51,6 @@ public interface FriendshipJPARepository extends JpaRepository<Friendship, UUID>
             @Param("end") LocalDateTime end,
             Pageable pageable
             );
-    @Query("""
-    SELECT COUNT(f) > 0
-    FROM Friendship f
-    WHERE f.requester.id = :xUserId
-      AND f.receiver.id = :targetUserId
-      AND f.status != :status
-    """)
-    boolean existsFriendRequest(
-            @Param("xUserId") Long xUserId
-            ,@Param("targetUserId") Long targetUserId
-            ,@Param("status") FRIENDSHIP_STATUS status);
-
     default Friendship findByIdOrThrow(String requestId) {
         return  findById(UUID.fromString(requestId)).orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND));
     };

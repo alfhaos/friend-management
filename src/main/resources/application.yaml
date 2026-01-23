@@ -3,9 +3,9 @@ server:
 # ================== DB 설정 ==================
 spring:
   datasource:
-    url: jdbc:h2:./H2/apr;AUTO_SERVER=TRUE
+    url: jdbc:h2:tcp://localhost/~/apr
     driver-class-name: org.h2.Driver
-    username: root
+    username: sa
     password:
 
   jackson:
