@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *  - 친구 관계 생성
  * =====================================================
  */
-@SpringBootTest
+@SpringBootTest(properties = "app.jpa.auditing.enabled=false")
 @Slf4j
 class SampleDataInsert {
 
@@ -50,7 +50,7 @@ class SampleDataInsert {
     @Transactional
     @Rollback(false)
     void makeMillionUsers() {
-        for (long i = 1; i <= 10000; i++) {
+        for (long i = 10003; i <= 10003; i++) {
             Users user = Users.create(UserName + i);
             usersJPARepository.save(user);
         }
@@ -114,4 +114,33 @@ class SampleDataInsert {
         assertTrue(friendshipCount >= 9999,
                 "친구 관계 수는 9999 이상 이어야 합니다");
     }
+
+
+    /*
+       친구 관계 수락 테스트 코드
+        사용자(1L)를 기준으로 모든 친구 신청(만개의 요청)을 수락한다
+    */
+    @Test
+    @Transactional
+    @Rollback(false)
+    void acceptFriendshipAll() {
+        Users currentUser = usersJPARepository.findByIdOrThrow(CURRENT_USER_ID);
+        List<Friendship> friendshipList =
+                friendshipJPARepository.findByAcceptorAndStatus(
+                        currentUser.getId(), FRIENDSHIP_STATUS.REQUESTED);
+
+        for (Friendship friendship : friendshipList) {
+            friendship.updateStatus(FRIENDSHIP_STATUS.ACCEPTED);
+        }
+
+        friendshipJPARepository.saveAll(friendshipList);
+
+        int acceptedCount =
+                friendshipJPARepository.countUsersFriends(
+                        currentUser.getId(), FRIENDSHIP_STATUS.ACCEPTED);
+
+        assertTrue(acceptedCount >= 9999,
+                "수락된 친구 관계 수는 9999 이상 이어야 합니다");
+    }
+
 }

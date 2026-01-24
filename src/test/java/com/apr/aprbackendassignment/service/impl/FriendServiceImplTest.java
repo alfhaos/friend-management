@@ -236,6 +236,11 @@ class FriendServiceImplTest {
         Friendship friendship = friendshipJPARepository.findById(UUID.fromString(requestId))
                 .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_FRIENDSHIP));
 
+        // 수신자가 아닌 경우 예외 처리
+        if(friendship.getReceiver() != currentUser) {
+            throw new CommException(CommResponseStatus.ONLY_RECEIVER_CAN_PROCESS);
+        }
+
         int currentUserFriendCnt = friendshipJPARepository.countUsersFriends(currentUser.getId(), FRIENDSHIP_STATUS.ACCEPTED);
 
         // 현재 로그인 유저의 친구 수 체크
@@ -254,15 +259,25 @@ class FriendServiceImplTest {
         assertEquals(ckFriendship.getStatus(), FRIENDSHIP_STATUS.ACCEPTED, "친구 상태가 ACCEPTED가 아닙니다.");
     }
 
+    // 기능 요구 사항 5 : 친구 요청 거절 테스트 코드
     @Test
     @Transactional
     @Rollback(false)
     void requestReject_test() throws Exception {
         // friendShip 테이블의 request-id 값 입력
         String requestId = "737d4034-5b13-43c0-9be2-50af7fc27cb3";
+        Long xUserId = CURRENT_USER_ID;
+
+        Users currentUser = usersJPARepository.findById(xUserId)
+                .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_USER));
 
         Friendship friendship = friendshipJPARepository.findById(UUID.fromString(requestId))
                 .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_FRIENDSHIP));
+
+        // 수신자가 아닌 경우 예외 처리
+        if(friendship.getReceiver() != currentUser) {
+            throw new CommException(CommResponseStatus.ONLY_RECEIVER_CAN_PROCESS);
+        }
 
         // 요청 상태가 REQUEST가 아닐 경우 예외 처리
         if(!friendship.getStatus().equals(FRIENDSHIP_STATUS.REQUESTED)) {
