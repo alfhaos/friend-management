@@ -156,4 +156,17 @@ public class FriendServiceImpl implements FriendService {
 
         friendship.updateStatus(FRIENDSHIP_STATUS.ACCEPTED);
     }
+
+    @Override
+    public void requestReject(Long xUserId, String requestId) {
+        Friendship friendship = friendshipJPARepository.findById(UUID.fromString(requestId))
+                .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_FRIENDSHIP));
+
+        // 요청 상태가 REQUEST가 아닐 경우 예외 처리
+        if(!friendship.getStatus().equals(FRIENDSHIP_STATUS.REQUESTED)) {
+            throw new CommException(CommResponseStatus.REQUEST_STATUS_ERROR);
+        }
+
+        friendship.updateStatus(FRIENDSHIP_STATUS.REJECTED);
+    }
 }
