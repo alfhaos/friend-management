@@ -16,4 +16,5 @@ public interface FriendService {
     void requestFriend(Long xUserId, FriendRequest friendRequest);
 
     void requestAccept(Long xUserId, String requestId);
+    void requestReject(Long xUserId, String requestId);
 }

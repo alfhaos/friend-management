@@ -253,4 +253,22 @@ class FriendServiceImplTest {
                 .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_FRIENDSHIP));
         assertEquals(ckFriendship.getStatus(), FRIENDSHIP_STATUS.ACCEPTED, "친구 상태가 ACCEPTED가 아닙니다.");
     }
+
+    @Test
+    @Transactional
+    @Rollback(false)
+    void requestReject_test() throws Exception {
+        // friendShip 테이블의 request-id 값 입력
+        String requestId = "737d4034-5b13-43c0-9be2-50af7fc27cb3";
+
+        Friendship friendship = friendshipJPARepository.findById(UUID.fromString(requestId))
+                .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_FRIENDSHIP));
+
+        // 요청 상태가 REQUEST가 아닐 경우 예외 처리
+        if(!friendship.getStatus().equals(FRIENDSHIP_STATUS.REQUESTED)) {
+            throw new CommException(CommResponseStatus.REQUEST_STATUS_ERROR);
+        }
+
+        friendship.updateStatus(FRIENDSHIP_STATUS.REJECTED);
+    }
 }
