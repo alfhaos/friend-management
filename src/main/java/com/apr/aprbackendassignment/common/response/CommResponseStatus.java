@@ -23,7 +23,7 @@ public enum CommResponseStatus {
     SUCCESS(HttpStatus.OK, "SUCCESS", "Success"),
 
     // 4xx Client Error
-    BAD_REQUEST(HttpStatus.BAD_REQUEST, "BAD_REQUEST", "Bad Request"),
+    BAD_REQUEST(HttpStatus.BAD_REQUEST, "BAD_REQUEST", "잘못된 요청입니다."),
     NOT_FOUND(HttpStatus.NOT_FOUND, "NOT_FOUND", "Not Found"),
     NOT_FOUND_USER(HttpStatus.NOT_FOUND, "NOT_FOUND_USER", "해당 사용자를 찾을수 없습니다."),
     SELF_FRIEND_REQUEST(HttpStatus.BAD_REQUEST, "SELF_FRIEND_REQUEST", "자기 자신에게는 친구 요청을 보낼 수 없습니다."),
@@ -36,7 +36,7 @@ public enum CommResponseStatus {
     ALREADY_RREQUESTED_FRIENDSHIP(HttpStatus.BAD_REQUEST, "ALREADY_RREQUESTED_FRIENDSHIP", "이미 요청이 존재합니다."),
 
     // 5xx Server Error
-    INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", "Internal Server Error");
+    INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", "처리 중 서버에서 에러가 발생했습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

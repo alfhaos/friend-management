@@ -5,8 +5,11 @@ import com.apr.aprbackendassignment.common.response.CommResponseStatus;
 import com.apr.aprbackendassignment.model.constant.SORT_GROUP;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -24,16 +27,22 @@ import org.springframework.data.domain.Sort;
 @Getter
 @Setter
 @AllArgsConstructor
+@NoArgsConstructor
 public class PageRequestParam {
 
     private static final String DELIMITER = ",";
 
+    @Schema(description = "Page index (0-based)", defaultValue = "0", example = "0")
     @Min(0)
-    private int page;
+    private int page = 0;
 
+    @Schema(description = "Maximum page size (1 to 100)", defaultValue = "10", example = "10")
     @Min(1)
     @Max(100)
-    private int maxSize;
+    private int maxSize = 10;
+
+    @Schema(description = "Sort field and direction, format: field,dir")
+    @NotNull
     private String sort;
     public Pageable toPageable() {
 
