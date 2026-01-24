@@ -1,10 +1,7 @@
 package com.apr.aprbackendassignment.repository;
 
-import com.apr.aprbackendassignment.common.exception.CommException;
-import com.apr.aprbackendassignment.common.response.CommResponseStatus;
 import com.apr.aprbackendassignment.model.constant.FRIENDSHIP_STATUS;
 import com.apr.aprbackendassignment.model.entity.Friendship;
-import com.apr.aprbackendassignment.model.entity.Users;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -44,6 +42,7 @@ public interface FriendshipJPARepository extends JpaRepository<Friendship, UUID>
            :start IS NULL 
            OR (f.createdTime >= :start AND f.createdTime < :end)
       )
+      AND f.status = 'REQUESTED'
     """)
     Page<Friendship> getFriendsReceiveList(
             @Param("userId") Long currentUserId,
@@ -57,20 +56,34 @@ public interface FriendshipJPARepository extends JpaRepository<Friendship, UUID>
     WHERE f.requester.id = :xUserId
       AND f.receiver.id = :targetUserId
     """)
-    Friendship findFriendRequest(Long xUserId, Long targetUserId);
+    Friendship findFriendRequest(
+            @Param("xUserId") Long xUserId
+            ,@Param("targetUserId") Long targetUserId);
     @Query("""
     SELECT COUNT(f)
     FROM Friendship f
     WHERE (f.requester.id = :userId OR f.receiver.id = :userId)
     AND f.status = :status
     """)
-    int countUsersFriends(Long userId, FRIENDSHIP_STATUS status);
+    int countUsersFriends(@Param("userId") Long userId
+            ,@Param("status") FRIENDSHIP_STATUS status);
     @Query("""
     SELECT f
     FROM Friendship f
     WHERE ((f.requester.id = :requesterId AND f.receiver.id = :targetUserId) 
        OR (f.requester.id = :targetUserId AND f.receiver.id = :requesterId))
     """)
-    Friendship checkExistingRequest(Long requesterId, Long targetUserId);
+    Friendship checkExistingRequest(
+            @Param("requesterId") Long requesterId
+            ,@Param("targetUserId") Long targetUserId);
 
+    @Query("""
+    SELECT f
+    FROM Friendship f
+    WHERE f.receiver.id = :userId
+      AND f.status = :status
+    """)
+    List<Friendship> findByAcceptorAndStatus(
+            @Param("userId") Long userId
+            ,@Param("status") FRIENDSHIP_STATUS status);
 }

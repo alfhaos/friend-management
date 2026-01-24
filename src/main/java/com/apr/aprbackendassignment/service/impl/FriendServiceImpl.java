@@ -135,6 +135,7 @@ public class FriendServiceImpl implements FriendService {
         }
     }
 
+    @Transactional
     @Override
     public void requestAccept(Long xUserId, String requestId) {
         Users currentUser = usersJPARepository.findById(xUserId)
@@ -157,6 +158,7 @@ public class FriendServiceImpl implements FriendService {
         friendship.updateStatus(FRIENDSHIP_STATUS.ACCEPTED);
     }
 
+    @Transactional
     @Override
     public void requestReject(Long xUserId, String requestId) {
         Friendship friendship = friendshipJPARepository.findById(UUID.fromString(requestId))
