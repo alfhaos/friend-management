@@ -92,6 +92,12 @@ public class FriendServiceImpl implements FriendService {
 
         Long currentUserId = currentUser.getId();
 
+        // 이미 받은 요청이 있는지 확인
+        Friendship existingRequest = friendshipJPARepository.checkExistingRequest(currentUser.getId(),friendRequest.getTargetUserId());
+        if (existingRequest != null) {
+            throw new CommException(CommResponseStatus.ALREADY_RREQUESTED_FRIENDSHIP);
+        }
+
         // 조회했을떄 존재하지 않는 상대방일 경우 예외 처리
         Users targetUser = usersJPARepository.findById(friendRequest.getTargetUserId())
                 .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_USER));

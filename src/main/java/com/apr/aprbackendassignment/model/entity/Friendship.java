@@ -20,7 +20,10 @@ import java.util.UUID;
  */
 @Getter
 @Entity
-@Table(name = "FRIENDSHIP")
+@Table(name = "FRIENDSHIP",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"requester_id", "receiver_id"})
+        })
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Friendship extends CommTimeEntity {
 
@@ -48,7 +51,6 @@ public class Friendship extends CommTimeEntity {
         return new Friendship(requester, receiver, status);
     }
 
-    // 테스트 코드로 친구 관계를 생성할때 날짜별로 생성하기 위해 추가
     public void updateRequestedAt(LocalDateTime time) {
         this.createdTime = time;
     }
