@@ -3,7 +3,7 @@ package com.apr.aprbackendassignment.common.interceptor;
 import com.apr.aprbackendassignment.common.response.CommResponse;
 import com.apr.aprbackendassignment.common.response.CommResponseStatus;
 import com.apr.aprbackendassignment.util.InMemoryRateLimiter;
-import com.apr.aprbackendassignment.util.RateLimitProperties;
+import com.apr.aprbackendassignment.util.LimitProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -27,11 +27,11 @@ import java.nio.charset.StandardCharsets;
  */
 @Component
 @RequiredArgsConstructor
-public class RateLimitInterceptor implements HandlerInterceptor {
+public class LimitInterceptor implements HandlerInterceptor {
 
     private final InMemoryRateLimiter limiter;
     private final ObjectMapper objectMapper;
-    private final RateLimitProperties properties;
+    private final LimitProperties properties;
     private final static String X_USER_ID_HEADER = "X-user-Id";
 
 

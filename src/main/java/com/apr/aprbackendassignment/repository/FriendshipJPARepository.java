@@ -61,4 +61,11 @@ public interface FriendshipJPARepository extends JpaRepository<Friendship, UUID>
       AND f.receiver.id = :targetUserId
     """)
     Friendship findFriendRequest(Long xUserId, Long targetUserId);
+    @Query("""
+    SELECT COUNT(f)
+    FROM Friendship f
+    WHERE (f.requester.id = :userId OR f.receiver.id = :userId)
+    AND f.status = :status
+    """)
+    int countUsersFriends(Long userId, FRIENDSHIP_STATUS status);
 }

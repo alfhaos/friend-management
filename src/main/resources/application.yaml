@@ -38,6 +38,7 @@ springdoc:
 
 # ================== REQUEST 제한 설정 ==================
 limit:
+  max-friend: 10000
   max-requests: 10
   window-milli-seconds: 1000
   paths:

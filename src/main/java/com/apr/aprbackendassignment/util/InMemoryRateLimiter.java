@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @RequiredArgsConstructor
 public class InMemoryRateLimiter {
 
-    private final RateLimitProperties properties;
+    private final LimitProperties properties;
 
     // 동시성 안정를 위해 ConcurrentHashMap과 AtomicInteger 사용
     private final Map<Long, AtomicInteger> counter = new ConcurrentHashMap<>();

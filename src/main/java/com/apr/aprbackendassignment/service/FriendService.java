@@ -14,4 +14,6 @@ public interface FriendService {
     PageResponse<FriendsRequestsResponse> getReceiveFriendsList(Pageable pageable, WINDOW_SLIDING windowSliding);
 
     void requestFriend(Long xUserId, FriendRequest friendRequest);
+
+    void requestAccept(Long xUserId, String requestId);
 }
