@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *  - 친구 관계 생성
  * =====================================================
  */
-@SpringBootTest
+@SpringBootTest(properties = "app.jpa.auditing.enabled=false")
 @Slf4j
 class SampleDataInsert {
 
@@ -50,7 +50,7 @@ class SampleDataInsert {
     @Transactional
     @Rollback(false)
     void makeMillionUsers() {
-        for (long i = 1; i <= 10000; i++) {
+        for (long i = 10003; i <= 10003; i++) {
             Users user = Users.create(UserName + i);
             usersJPARepository.save(user);
         }

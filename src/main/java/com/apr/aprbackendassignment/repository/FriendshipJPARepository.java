@@ -72,6 +72,7 @@ public interface FriendshipJPARepository extends JpaRepository<Friendship, UUID>
     FROM Friendship f
     WHERE ((f.requester.id = :requesterId AND f.receiver.id = :targetUserId) 
        OR (f.requester.id = :targetUserId AND f.receiver.id = :requesterId))
+       AND f.status != 'REJECTED'
     """)
     Friendship checkExistingRequest(
             @Param("requesterId") Long requesterId
