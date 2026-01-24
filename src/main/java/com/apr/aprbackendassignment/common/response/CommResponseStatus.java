@@ -30,6 +30,9 @@ public enum CommResponseStatus {
     ALREADY_REQUESTED_FRIEND(HttpStatus.CONFLICT, "ALREADY_REQUESTED_FRIEND", "이미 친구 요청이 존재합니다."),
     TOO_MANY_REQUEST(HttpStatus.TOO_MANY_REQUESTS, "TOO_MANY_REQUEST", "요청이 너무 많습니다. 잠시 후 다시 시도해주세요."),
     NOT_FOUND_FRIENDSHIP(HttpStatus.NOT_FOUND, "NOT_FOUND_FRIENDSHIP", "해당 친구관계를 찾을수 없습니다."),
+    REQUEST_STATUS_ERROR(HttpStatus.BAD_REQUEST, "REQUEST_STATUS_ERROR", "해당 요청은 처리할수 없습니다."),
+    FRIEND_LIMIT_EXCEEDED_FOR_ACCEPTOR(HttpStatus.BAD_REQUEST, "FRIEND_LIMIT_EXCEEDED_FOR_ACCEPTOR", "본인의 친구 수가 꽉 차서 수락할 수 없습니다."),
+    FRIEND_LIMIT_EXCEEDED_RECEIVER(HttpStatus.BAD_REQUEST, "FRIEND_LIMIT_EXCEEDED_RECEIVER", "상대방의 친구 수가 최대 한도를 초과하여 요청을 보낼 수 없습니다."),
     // 5xx Server Error
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", "Internal Server Error");
 

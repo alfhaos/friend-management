@@ -11,8 +11,9 @@ import java.util.List;
 @Setter
 @Component
 @ConfigurationProperties(prefix = "limit")
-public class RateLimitProperties {
+public class LimitProperties {
 
+    private int maxFriend;
     private int maxRequests;
     private int windowMilliSeconds;
     private List<String> paths;

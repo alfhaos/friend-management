@@ -20,7 +20,10 @@ import java.util.UUID;
  */
 @Getter
 @Entity
-@Table(name = "FRIENDSHIP")
+@Table(name = "FRIENDSHIP",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"requester_id", "receiver_id"})
+        })
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Friendship extends CommTimeEntity {
 

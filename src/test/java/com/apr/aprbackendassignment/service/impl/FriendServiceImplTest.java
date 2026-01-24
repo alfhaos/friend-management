@@ -13,6 +13,7 @@ import com.apr.aprbackendassignment.model.entity.Friendship;
 import com.apr.aprbackendassignment.model.entity.Users;
 import com.apr.aprbackendassignment.repository.FriendshipJPARepository;
 import com.apr.aprbackendassignment.repository.UsersJPARepository;
+import com.apr.aprbackendassignment.util.LimitProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
@@ -28,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -46,13 +48,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @Slf4j
 @AutoConfigureMockMvc
-class FriendServiceTest {
+class FriendServiceImplTest {
 
     @Autowired
     private ObjectMapper objectMapper;
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private LimitProperties limitProperties;
 
     @Autowired
     private UsersJPARepository usersJPARepository;
@@ -163,7 +168,7 @@ class FriendServiceTest {
     @Rollback(false)
     void rejectedRequestFriend() {
         // 테이블의 request-id 값 입력
-        String requestId = "adb0d6ec-d15b-47fa-ad1c-94009ff5c01b";
+        String requestId = "f5143ce5-9bf7-459e-8d65-7b04a4c7071b";
         Friendship friendship = friendshipJPARepository.findByIdOrThrow(requestId);
 
         assertEquals(String.valueOf(friendship.getId()), requestId,"아이디가 불일치 합니다.");
@@ -207,5 +212,37 @@ class FriendServiceTest {
                                 .content(lastBody)
                 )
                 .andExpect(status().isTooManyRequests());
+    }
+
+    // 기능 요구 사항 4 : 친구 수락 테스트 코드
+    @Test
+    @Transactional
+    @Rollback(false)
+    void requestAccept_test() throws Exception {
+        // friendShip 테이블의 request-id 값 입력
+        String requestId = "b1ea936b-7c78-4055-9015-7d72d6700c45";
+        Long xUserId = CURRENT_USER_ID;
+
+        Users currentUser = usersJPARepository.findById(xUserId)
+                .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_USER));
+
+        Friendship friendship = friendshipJPARepository.findById(UUID.fromString(requestId))
+                .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_FRIENDSHIP));
+
+        int currentUserFriendCnt = friendshipJPARepository.countUsersFriends(currentUser.getId(), FRIENDSHIP_STATUS.ACCEPTED);
+
+        // 현재 로그인 유저의 친구 수 체크
+        if(currentUserFriendCnt >= limitProperties.getMaxFriend()) {
+            throw new CommException(CommResponseStatus.FRIEND_LIMIT_EXCEEDED_FOR_ACCEPTOR);
+        }
+        // 요청 상태가 REQUEST가 아닐 경우 예외 처리
+        if(!friendship.getStatus().equals(FRIENDSHIP_STATUS.REQUESTED)) {
+            throw new CommException(CommResponseStatus.REQUEST_STATUS_ERROR);
+        }
+
+        friendship.updateStatus(FRIENDSHIP_STATUS.ACCEPTED);
+
+        Friendship ckFriendship = friendshipJPARepository.findByIdOrThrow(requestId);
+        assertEquals(ckFriendship.getStatus(), FRIENDSHIP_STATUS.ACCEPTED, "친구 상태가 ACCEPTED가 아닙니다.");
     }
 }
