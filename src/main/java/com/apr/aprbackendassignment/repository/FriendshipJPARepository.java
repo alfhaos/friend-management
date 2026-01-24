@@ -51,9 +51,6 @@ public interface FriendshipJPARepository extends JpaRepository<Friendship, UUID>
             @Param("end") LocalDateTime end,
             Pageable pageable
             );
-    default Friendship findByIdOrThrow(String requestId) {
-        return  findById(UUID.fromString(requestId)).orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND));
-    };
     @Query("""
     SELECT f
     FROM Friendship f
@@ -68,4 +65,12 @@ public interface FriendshipJPARepository extends JpaRepository<Friendship, UUID>
     AND f.status = :status
     """)
     int countUsersFriends(Long userId, FRIENDSHIP_STATUS status);
+    @Query("""
+    SELECT f
+    FROM Friendship f
+    WHERE ((f.requester.id = :requesterId AND f.receiver.id = :targetUserId) 
+       OR (f.requester.id = :targetUserId AND f.receiver.id = :requesterId))
+    """)
+    Friendship checkExistingRequest(Long requesterId, Long targetUserId);
+
 }

@@ -51,7 +51,6 @@ public class Friendship extends CommTimeEntity {
         return new Friendship(requester, receiver, status);
     }
 
-    // 테스트 코드로 친구 관계를 생성할때 날짜별로 생성하기 위해 추가
     public void updateRequestedAt(LocalDateTime time) {
         this.createdTime = time;
     }

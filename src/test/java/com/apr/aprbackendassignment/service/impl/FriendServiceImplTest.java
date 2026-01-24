@@ -129,7 +129,13 @@ class FriendServiceImplTest {
         Users currentUser = usersJPARepository.findById(CURRENT_USER_ID)
                 .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_USER));
 
-        FriendRequest friendRequest = new FriendRequest(2L);
+        FriendRequest friendRequest = new FriendRequest(4L);
+
+        // 이미 받은 요청이 있는지 확인
+        Friendship existingRequest = friendshipJPARepository.checkExistingRequest(currentUser.getId(),friendRequest.getTargetUserId());
+        if (existingRequest != null) {
+            throw new CommException(CommResponseStatus.ALREADY_RREQUESTED_FRIENDSHIP);
+        }
 
         // 조회했을떄 존재하지 않는 상대방일 경우 예외 처리
         Users targetUser = usersJPARepository.findById(friendRequest.getTargetUserId())
@@ -169,7 +175,8 @@ class FriendServiceImplTest {
     void rejectedRequestFriend() {
         // 테이블의 request-id 값 입력
         String requestId = "f5143ce5-9bf7-459e-8d65-7b04a4c7071b";
-        Friendship friendship = friendshipJPARepository.findByIdOrThrow(requestId);
+        Friendship friendship = friendshipJPARepository.findById(UUID.fromString(requestId))
+                .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_FRIENDSHIP));
 
         assertEquals(String.valueOf(friendship.getId()), requestId,"아이디가 불일치 합니다.");
 
@@ -242,7 +249,8 @@ class FriendServiceImplTest {
 
         friendship.updateStatus(FRIENDSHIP_STATUS.ACCEPTED);
 
-        Friendship ckFriendship = friendshipJPARepository.findByIdOrThrow(requestId);
+        Friendship ckFriendship = friendshipJPARepository.findById(UUID.fromString(requestId))
+                .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_FRIENDSHIP));
         assertEquals(ckFriendship.getStatus(), FRIENDSHIP_STATUS.ACCEPTED, "친구 상태가 ACCEPTED가 아닙니다.");
     }
 }
