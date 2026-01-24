@@ -71,4 +71,13 @@ public class FriendController {
         friendService.requestFriend(xUserId, friendRequest);
         return CommResponse.success();
     }
+    @Operation(summary = "친구 신청 수락")
+    @PostMapping("/accept/{requestId}")
+    public CommResponse<CommResponseStatus> requestAccept(
+            @RequestHeader(xUserIdHeader) Long xUserId,
+            @PathVariable("requestId") String requestId){
+
+        friendService.requestAccept(xUserId, requestId);
+        return CommResponse.success();
+    }
 }
