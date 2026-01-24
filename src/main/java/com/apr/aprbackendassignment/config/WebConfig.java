@@ -1,7 +1,7 @@
 package com.apr.aprbackendassignment.config;
 
-import com.apr.aprbackendassignment.common.interceptor.RateLimitInterceptor;
-import com.apr.aprbackendassignment.util.RateLimitProperties;
+import com.apr.aprbackendassignment.common.interceptor.LimitInterceptor;
+import com.apr.aprbackendassignment.util.LimitProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -22,8 +22,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @RequiredArgsConstructor
 public class WebConfig implements WebMvcConfigurer {
 
-    private final RateLimitInterceptor rateLimitInterceptor;
-    private final RateLimitProperties rateLimitProperties;
+    private final LimitInterceptor rateLimitInterceptor;
+    private final LimitProperties rateLimitProperties;
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(rateLimitInterceptor)

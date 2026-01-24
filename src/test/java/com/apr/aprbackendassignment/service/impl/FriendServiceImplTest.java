@@ -6,15 +6,14 @@ import com.apr.aprbackendassignment.common.response.CommResponseStatus;
 import com.apr.aprbackendassignment.common.response.PageResponse;
 import com.apr.aprbackendassignment.model.constant.FRIENDSHIP_STATUS;
 import com.apr.aprbackendassignment.model.constant.WINDOW_SLIDING;
-import com.apr.aprbackendassignment.model.dto.UsersDto;
 import com.apr.aprbackendassignment.model.dto.request.FriendRequest;
 import com.apr.aprbackendassignment.model.dto.response.FriendsRequestsResponse;
 import com.apr.aprbackendassignment.model.dto.response.FriendsResponse;
 import com.apr.aprbackendassignment.model.entity.Friendship;
 import com.apr.aprbackendassignment.model.entity.Users;
-import com.apr.aprbackendassignment.repository.FriendRepository;
-import com.apr.aprbackendassignment.repository.jpaRepository.FriendshipJPARepository;
-import com.apr.aprbackendassignment.repository.jpaRepository.UsersJPARepository;
+import com.apr.aprbackendassignment.repository.FriendshipJPARepository;
+import com.apr.aprbackendassignment.repository.UsersJPARepository;
+import com.apr.aprbackendassignment.util.LimitProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
@@ -28,7 +27,9 @@ import org.springframework.test.annotation.Rollback;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -36,12 +37,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * =====================================================
- * Class Name   : FriendServiceImplTest
+ * Class Name   : FriendServiceTest
  * Description  :
  *  - 친구 관계 관리를 위한 서비스 구현 클래스 테스트
 
  * 주요 기능
- *  - FriendServiceImpl 클래스의 메서드 테스트
+ *  - FriendService 클래스의 메서드 테스트
  * =====================================================
  */
 @SpringBootTest
@@ -56,7 +57,7 @@ class FriendServiceImplTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private FriendRepository friendRepository;
+    private LimitProperties limitProperties;
 
     @Autowired
     private UsersJPARepository usersJPARepository;
@@ -72,10 +73,8 @@ class FriendServiceImplTest {
         Pageable pageable = param.toPageable();
 
         Users currentUser = usersJPARepository.findByIdOrThrow(CURRENT_USER_ID);
-        UsersDto currentUserDto = UsersDto.fromEntity(currentUser);
-
-        Page<FriendsResponse> dtoPage = friendRepository.getFriendsList(currentUserDto.getId(), pageable);
-
+        Page<Friendship> result = friendshipJPARepository.getFriendsList(currentUser.getId(), FRIENDSHIP_STATUS.ACCEPTED, pageable);
+        Page<FriendsResponse> dtoPage = FriendsResponse.fromEntityPage(result, currentUser.getId());
 
         PageResponse<FriendsResponse> response =  new PageResponse<>(
                 dtoPage.getTotalPages(),
@@ -96,8 +95,22 @@ class FriendServiceImplTest {
         Pageable pageable = param.toPageable();
         WINDOW_SLIDING windowSliding = WINDOW_SLIDING.DAY;
 
-        UsersDto currentUserDto = UsersDto.fromEntity(usersJPARepository.findByIdOrThrow(CURRENT_USER_ID));
-        Page<FriendsRequestsResponse> dtoPage = friendRepository.getFriendsReceiveList(currentUserDto.getId(), pageable, windowSliding);
+        Users currentUser = usersJPARepository.findById(CURRENT_USER_ID)
+                .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_USER));
+
+
+        LocalDateTime time = windowSliding.calculateTimeWindow();
+        LocalDateTime start = null;
+        LocalDateTime end = null;
+
+        // over일 경우 null로 넘긴다.
+        if (time != null) {
+            LocalDate date = time.toLocalDate();
+            start = date.atStartOfDay();
+            end = date.plusDays(1).atStartOfDay();
+        }
+        Page<Friendship> result = friendshipJPARepository.getFriendsReceiveList(currentUser.getId(), start, end, pageable);
+        Page<FriendsRequestsResponse> dtoPage =  FriendsRequestsResponse.fromEntityPage(result);
         PageResponse<FriendsRequestsResponse> response =  new PageResponse<>(
                 dtoPage.getTotalPages(),
                 (int) dtoPage.getTotalElements(),
@@ -112,23 +125,25 @@ class FriendServiceImplTest {
     @Transactional
     @Rollback(false)
     void requestFriend() {
-        Long xUserId = CURRENT_USER_ID;
-        Users currentUser = usersJPARepository.findByIdOrThrow(xUserId);
+
+        Users currentUser = usersJPARepository.findById(CURRENT_USER_ID)
+                .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_USER));
+
         FriendRequest friendRequest = new FriendRequest(2L);
 
+        // 조회했을떄 존재하지 않는 상대방일 경우 예외 처리
+        Users targetUser = usersJPARepository.findById(friendRequest.getTargetUserId())
+                .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_USER));
+        Long targetUserId = targetUser.getId();
+
         // 자기자신에게 친구 요청 보낼 경우 예외 처리
-        if(xUserId.equals(friendRequest.getTargetUserId())) {
+        if(currentUser.getId().equals(targetUserId)) {
             throw new CommException(CommResponseStatus.SELF_FRIEND_REQUEST);
         }
-
-        // 조회했을떄 존재하지 않는 상대방일 경우 예외 처리
-        Users targetUser = usersJPARepository.findByIdOrThrow(friendRequest.getTargetUserId());
-
-
         // 거절시 재요청 가능 요구사항
-        // 기존에 친구 요청이 존재하는지 확인 및 만약 거절 이력이 있을경우 해당 데이터 상태를 REQUESTED로 변경
-        Friendship friendship = friendRepository.findFriendRequest(xUserId, targetUser.getId());
+        Friendship friendship = friendshipJPARepository.findFriendRequest(currentUser.getId(), targetUser.getId());
 
+        // 만약 거절 이력이 있을경우 해당 데이터 상태를 REQUESTED로 변경
         if(friendship != null) {
             if(friendship.getStatus().equals(FRIENDSHIP_STATUS.REJECTED)) {
                 friendship.updateRequestedAt(LocalDateTime.now());
@@ -152,7 +167,8 @@ class FriendServiceImplTest {
     @Transactional
     @Rollback(false)
     void rejectedRequestFriend() {
-        String requestId = "76e3848e-35a8-46c3-8f0b-a3181c9529a7";
+        // 테이블의 request-id 값 입력
+        String requestId = "f5143ce5-9bf7-459e-8d65-7b04a4c7071b";
         Friendship friendship = friendshipJPARepository.findByIdOrThrow(requestId);
 
         assertEquals(String.valueOf(friendship.getId()), requestId,"아이디가 불일치 합니다.");
@@ -196,5 +212,37 @@ class FriendServiceImplTest {
                                 .content(lastBody)
                 )
                 .andExpect(status().isTooManyRequests());
+    }
+
+    // 기능 요구 사항 4 : 친구 수락 테스트 코드
+    @Test
+    @Transactional
+    @Rollback(false)
+    void requestAccept_test() throws Exception {
+        // friendShip 테이블의 request-id 값 입력
+        String requestId = "b1ea936b-7c78-4055-9015-7d72d6700c45";
+        Long xUserId = CURRENT_USER_ID;
+
+        Users currentUser = usersJPARepository.findById(xUserId)
+                .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_USER));
+
+        Friendship friendship = friendshipJPARepository.findById(UUID.fromString(requestId))
+                .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_FRIENDSHIP));
+
+        int currentUserFriendCnt = friendshipJPARepository.countUsersFriends(currentUser.getId(), FRIENDSHIP_STATUS.ACCEPTED);
+
+        // 현재 로그인 유저의 친구 수 체크
+        if(currentUserFriendCnt >= limitProperties.getMaxFriend()) {
+            throw new CommException(CommResponseStatus.FRIEND_LIMIT_EXCEEDED_FOR_ACCEPTOR);
+        }
+        // 요청 상태가 REQUEST가 아닐 경우 예외 처리
+        if(!friendship.getStatus().equals(FRIENDSHIP_STATUS.REQUESTED)) {
+            throw new CommException(CommResponseStatus.REQUEST_STATUS_ERROR);
+        }
+
+        friendship.updateStatus(FRIENDSHIP_STATUS.ACCEPTED);
+
+        Friendship ckFriendship = friendshipJPARepository.findByIdOrThrow(requestId);
+        assertEquals(ckFriendship.getStatus(), FRIENDSHIP_STATUS.ACCEPTED, "친구 상태가 ACCEPTED가 아닙니다.");
     }
 }

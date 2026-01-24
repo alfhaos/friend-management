@@ -5,21 +5,24 @@ import com.apr.aprbackendassignment.common.response.CommResponseStatus;
 import com.apr.aprbackendassignment.common.response.PageResponse;
 import com.apr.aprbackendassignment.model.constant.FRIENDSHIP_STATUS;
 import com.apr.aprbackendassignment.model.constant.WINDOW_SLIDING;
-import com.apr.aprbackendassignment.model.dto.UsersDto;
 import com.apr.aprbackendassignment.model.dto.request.FriendRequest;
 import com.apr.aprbackendassignment.model.dto.response.FriendsRequestsResponse;
 import com.apr.aprbackendassignment.model.dto.response.FriendsResponse;
 import com.apr.aprbackendassignment.model.entity.Friendship;
 import com.apr.aprbackendassignment.model.entity.Users;
-import com.apr.aprbackendassignment.repository.FriendRepository;
+import com.apr.aprbackendassignment.repository.FriendshipJPARepository;
+import com.apr.aprbackendassignment.repository.UsersJPARepository;
 import com.apr.aprbackendassignment.service.FriendService;
+import com.apr.aprbackendassignment.util.LimitProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 /**
  * =====================================================
@@ -35,14 +38,20 @@ import java.time.LocalDateTime;
 @Service
 @RequiredArgsConstructor
 public class FriendServiceImpl implements FriendService {
-    private static final Long CURRENT_USER_ID = 1L;
 
-    private final FriendRepository friendRepository;
+    private final FriendshipJPARepository friendshipJPARepository;
+    private final UsersJPARepository usersJPARepository;
+    private final LimitProperties limitProperties;
+    // 목록 조회 기능 - 현재 고정된 사용자 ID (예: 1L) 사용
+    private static final Long CURRENT_USER_ID = 1L;
     @Transactional(readOnly = true)
     @Override
     public PageResponse<FriendsResponse> getFriendsList(Pageable pageable) {
-        UsersDto currentUser = friendRepository.findUserById(CURRENT_USER_ID);
-        Page<FriendsResponse> dtoPage = friendRepository.getFriendsList(currentUser.getId(), pageable);
+        Users currentUser = usersJPARepository.findById(CURRENT_USER_ID)
+                .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_USER));
+
+        Page<Friendship> result = friendshipJPARepository.getFriendsList(currentUser.getId(), FRIENDSHIP_STATUS.ACCEPTED, pageable);
+        Page<FriendsResponse> dtoPage = FriendsResponse.fromEntityPage(result, currentUser.getId());
 
         return new PageResponse<>(
                 dtoPage.getTotalPages(),
@@ -53,9 +62,21 @@ public class FriendServiceImpl implements FriendService {
     @Transactional(readOnly = true)
     @Override
     public PageResponse<FriendsRequestsResponse> getReceiveFriendsList(Pageable pageable, WINDOW_SLIDING windowSliding) {
-        UsersDto currentUser = friendRepository.findUserById(CURRENT_USER_ID);
+        Users currentUser = usersJPARepository.findById(CURRENT_USER_ID)
+                .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_USER));
 
-        Page<FriendsRequestsResponse> dtoPage = friendRepository.getFriendsReceiveList(currentUser.getId(), pageable, windowSliding);
+        LocalDateTime time = windowSliding.calculateTimeWindow();
+        LocalDateTime start = null;
+        LocalDateTime end = null;
+
+        // over일 경우 null로 넘긴다.
+        if (time != null) {
+            LocalDate date = time.toLocalDate();
+            start = date.atStartOfDay();
+            end = date.plusDays(1).atStartOfDay();
+        }
+        Page<Friendship> result = friendshipJPARepository.getFriendsReceiveList(currentUser.getId(), start, end, pageable);
+        Page<FriendsRequestsResponse> dtoPage =  FriendsRequestsResponse.fromEntityPage(result);
         return new PageResponse<>(
                 dtoPage.getTotalPages(),
                 (int) dtoPage.getTotalElements(),
@@ -66,18 +87,67 @@ public class FriendServiceImpl implements FriendService {
     @Transactional
     @Override
     public void requestFriend(Long xUserId, FriendRequest friendRequest) {
-        Users currentUser = friendRepository.findUserByIdOrThrow(xUserId);
+        Users currentUser = usersJPARepository.findById(xUserId)
+                .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_USER));
+
         Long currentUserId = currentUser.getId();
 
         // 조회했을떄 존재하지 않는 상대방일 경우 예외 처리
-        Users targetUser = friendRepository.findUserByIdOrThrow(friendRequest.getTargetUserId());
+        Users targetUser = usersJPARepository.findById(friendRequest.getTargetUserId())
+                .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_USER));
         Long targetUserId = targetUser.getId();
+
+        // 친구 수 제한 체크
+        int targetUserFriendCnt = friendshipJPARepository.countUsersFriends(targetUserId, FRIENDSHIP_STATUS.ACCEPTED);
+        if(targetUserFriendCnt >= limitProperties.getMaxFriend()) {
+            throw new CommException(CommResponseStatus.FRIEND_LIMIT_EXCEEDED_RECEIVER);
+        }
 
         // 자기자신에게 친구 요청 보낼 경우 예외 처리
         if(currentUserId.equals(targetUserId)) {
             throw new CommException(CommResponseStatus.SELF_FRIEND_REQUEST);
         }
+        // 거절시 재요청 가능 요구사항
+        Friendship friendship = friendshipJPARepository.findFriendRequest(currentUser.getId(), targetUser.getId());
 
-        friendRepository.requestFriend(currentUser, targetUser);
+        // 만약 거절 이력이 있을경우 해당 데이터 상태를 REQUESTED로 변경
+        if(friendship != null) {
+            if(friendship.getStatus().equals(FRIENDSHIP_STATUS.REJECTED)) {
+                friendship.updateRequestedAt(LocalDateTime.now());
+                friendship.updateStatus(FRIENDSHIP_STATUS.REQUESTED);
+            } else {
+                throw new CommException(CommResponseStatus.ALREADY_REQUESTED_FRIEND);
+            }
+        } else {
+            Friendship friendShip =
+                    Friendship.create(
+                            currentUser,
+                            targetUser,
+                            FRIENDSHIP_STATUS.REQUESTED
+                    );
+            friendshipJPARepository.save(friendShip);
+        }
+    }
+
+    @Override
+    public void requestAccept(Long xUserId, String requestId) {
+        Users currentUser = usersJPARepository.findById(xUserId)
+                .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_USER));
+
+        Friendship friendship = friendshipJPARepository.findById(UUID.fromString(requestId))
+                .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_FRIENDSHIP));
+
+        int currentUserFriendCnt = friendshipJPARepository.countUsersFriends(currentUser.getId(), FRIENDSHIP_STATUS.ACCEPTED);
+
+        // 현재 로그인 유저의 친구 수 체크
+        if(currentUserFriendCnt >= limitProperties.getMaxFriend()) {
+            throw new CommException(CommResponseStatus.FRIEND_LIMIT_EXCEEDED_FOR_ACCEPTOR);
+        }
+        // 요청 상태가 REQUEST가 아닐 경우 예외 처리
+        if(!friendship.getStatus().equals(FRIENDSHIP_STATUS.REQUESTED)) {
+            throw new CommException(CommResponseStatus.REQUEST_STATUS_ERROR);
+        }
+
+        friendship.updateStatus(FRIENDSHIP_STATUS.ACCEPTED);
     }
 }
