@@ -6,8 +6,11 @@ import com.apr.aprbackendassignment.common.response.CommResponseStatus;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+
 /**
  * =====================================================
  * Class Name   : CommExceptionControllerAdvice
@@ -34,8 +37,12 @@ public class CommExceptionControllerAdvice {
     }
 
     // 잘못된 파라미터
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<CommResponse<?>> handleIllegalArgument(IllegalArgumentException e) {
+    @ExceptionHandler({
+            HttpMessageNotReadableException.class,
+            MethodArgumentTypeMismatchException.class,
+            IllegalArgumentException.class
+    })
+    public ResponseEntity<CommResponse<?>> handleParamException(Exception e) {
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
