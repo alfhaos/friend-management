@@ -9,6 +9,7 @@ import com.apr.aprbackendassignment.model.dto.request.FriendRequest;
 import com.apr.aprbackendassignment.model.dto.response.FriendsRequestsResponse;
 import com.apr.aprbackendassignment.model.dto.response.FriendsResponse;
 import com.apr.aprbackendassignment.service.FriendService;
+import com.apr.aprbackendassignment.util.FriendRequestFacade;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -41,6 +42,7 @@ public class FriendController {
     private static final String xUserIdHeader = "X-user-Id";
     private static final String requestIdPath = "requestId";
     private final FriendService friendService;
+    private final FriendRequestFacade friendRequestFacade;
 
     @Operation(summary = "친구 목록 조회")
     @GetMapping
@@ -69,7 +71,7 @@ public class FriendController {
             @RequestHeader(xUserIdHeader) Long xUserId,
             @RequestBody FriendRequest friendRequest) {
 
-        friendService.requestFriend(xUserId, friendRequest);
+        friendRequestFacade.requestFriend(xUserId, friendRequest);
         return CommResponse.success();
     }
     @Operation(summary = "친구 신청 수락")

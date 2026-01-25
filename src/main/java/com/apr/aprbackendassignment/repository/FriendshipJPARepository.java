@@ -77,7 +77,15 @@ public interface FriendshipJPARepository extends JpaRepository<Friendship, UUID>
     Friendship checkExistingRequest(
             @Param("requesterId") Long requesterId
             ,@Param("targetUserId") Long targetUserId);
-
+    @Query("""
+    SELECT COUNT(f)
+    FROM Friendship f
+    WHERE (f.requester.id = :userId OR f.receiver.id = :userId)
+       AND f.status = :status
+    """)
+    int checkConcurrentRequest(
+            @Param("userId") Long userId,
+            @Param("status") FRIENDSHIP_STATUS status);
     @Query("""
     SELECT f
     FROM Friendship f

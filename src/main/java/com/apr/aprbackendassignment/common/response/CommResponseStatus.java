@@ -35,9 +35,11 @@ public enum CommResponseStatus {
     FRIEND_LIMIT_EXCEEDED_REQUESTER(HttpStatus.BAD_REQUEST, "FRIEND_LIMIT_EXCEEDED_REQUESTER", "상대방의 친구 수가 최대 한도를 초과하여 요청을 수락 할 수 없습니다."),
     ALREADY_RREQUESTED_FRIENDSHIP(HttpStatus.BAD_REQUEST, "ALREADY_RREQUESTED_FRIENDSHIP", "이미 요청이 존재합니다."),
     ONLY_RECEIVER_CAN_PROCESS(HttpStatus.FORBIDDEN, "ONLY_RECEIVER_CAN_PROCESS", "해당 요청은 수신자만 처리할 수 있습니다."),
+    CONCURRENT_FRIEND_REQUEST(HttpStatus.LOCKED, "CONCURRENT_FRIEND_REQUEST", "이미 처리 중인 친구 요청이 있습니다. 잠시 후 다시 시도해주세요."),
 
     // 5xx Server Error
-    INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", "처리 중 서버에서 에러가 발생했습니다.");
+    INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", "처리 중 서버에서 에러가 발생했습니다."),
+    LOCK_INTERRUPTED(HttpStatus.INTERNAL_SERVER_ERROR, "LOCK_INTERRUPTED", "요청 처리 중 인터럽트가 발생했습니다. 다시 시도해주세요.");
 
     private final HttpStatus httpStatus;
     private final String code;
