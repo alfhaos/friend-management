@@ -11,7 +11,7 @@
 
 
 ## 🚀 아키텍처 구성도
-![img.png](아키텍처 구성도.png)
+![architecture.png](architecture.png)
 ## 🚀 핵심 설계 전략 및 문제 해결
 
 ### 1. 동시성 제어: Redis 분산 락 & Facade 패턴
