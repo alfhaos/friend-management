@@ -14,7 +14,9 @@ import com.apr.aprbackendassignment.repository.FriendshipJPARepository;
 import com.apr.aprbackendassignment.repository.UsersJPARepository;
 import com.apr.aprbackendassignment.service.FriendService;
 import com.apr.aprbackendassignment.util.LimitProperties;
+import com.apr.aprbackendassignment.util.RedisLockUtil;
 import lombok.RequiredArgsConstructor;
+import org.redisson.api.RLock;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -22,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 /**
  * =====================================================
@@ -41,6 +44,7 @@ public class FriendServiceImpl implements FriendService {
     private final FriendshipJPARepository friendshipJPARepository;
     private final UsersJPARepository usersJPARepository;
     private final LimitProperties limitProperties;
+    private final RedisLockUtil redisLockUtil;
     // 목록 조회 기능 - 현재 고정된 사용자 ID (예: 1L) 사용
     private static final Long CURRENT_USER_ID = 1L;
     @Transactional(readOnly = true)
@@ -82,15 +86,14 @@ public class FriendServiceImpl implements FriendService {
 
         Long currentUserId = currentUser.getId();
 
+        Users targetUser = getUserOrThrow(friendRequest.getTargetUserId());
+        Long targetUserId = targetUser.getId();
+
         // 이미 받은 요청이 있는지 확인
         Friendship existingRequest = friendshipJPARepository.checkExistingRequest(currentUser.getId(),friendRequest.getTargetUserId());
         if (existingRequest != null) {
             throw new CommException(CommResponseStatus.ALREADY_RREQUESTED_FRIENDSHIP);
         }
-
-        Users targetUser = getUserOrThrow(friendRequest.getTargetUserId());
-        Long targetUserId = targetUser.getId();
-
         // 자기자신에게 친구 요청 보낼 경우 예외 처리
         if(currentUserId.equals(targetUserId)) {
             throw new CommException(CommResponseStatus.SELF_FRIEND_REQUEST);
