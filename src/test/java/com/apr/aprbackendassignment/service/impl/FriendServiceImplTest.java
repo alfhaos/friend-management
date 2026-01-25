@@ -207,7 +207,6 @@ class FriendServiceImplTest {
     // 기능 요구 사항 3-2 : 요청 제한 테스트 코드
     @Test
     @Transactional
-    @Rollback(false)
     void rateLimit_test() throws Exception {
         String url = "/api/friends/request";
 
