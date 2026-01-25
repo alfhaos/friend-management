@@ -1,6 +1,8 @@
 # apr-backend-assignment
 에이피알 백엔드 과제 전형 - 친구 관리 시스템 구축
 
+사용자 인증 기능이 없기에 목록 조회 API는 기본적으로 사용자 아이디 (1L)을 기준으로 조회합니다.
+
 ## 🛠 기술 스택
 - **언어**: Java 21
 - **프레임워크**: Spring Boot 3.5.9
@@ -37,6 +39,35 @@
 | 친구 신청 | `POST` | `/api/friends/request` | 분산 락 및 Rate Limit 적용 |
 | 요청 수락 | `POST` | `/api/friends/accept/{requestId}` | 수락 전 최대 친구 수 검증 |
 | 요청 거절 | `POST` | `/api/friends/reject/{requestId}` | 거절 후 재신청 가능 구조 |
+
+
+## 📋 API 명세 상세 정리
+- 친구 목록 조회:
+  - 친구 관계 상태가 ACCEPTED인 항목만 페이징 처리하여 반환.
+  - response의 'user_id' 필드에는 친구의 사용자 ID 응답, from_user_id 및 to_user_id는 각각 발신자, 수신자로 구분하였습니다.
+  - approved_at 응답 필드는 updated_time과 동일한 값입니다.
+  
+- 받은 요청 목록:
+  - `window` 쿼리 파라미터로 기간 필터 적용(1d, 7d, 30d, 90d, over).
+  - 페이징 파라미터는 page(0-based), maxSize(1~100), sort(field,dir) 형식으로 받습니다.
+  - response의 `request_id`는 Friendship의 UUID, `request_user_id`는 요청자 ID, `requestedAt`은 created_time 값입니다.
+  - `window=over`일 때는 기간 제한 없이 전체 요청을 조회합니다.
+  
+- 친구 신청:
+  - 요청 헤더 `X-user-Id`와 body의 `targetUserId`로 요청자/대상자를 구분합니다.
+  - 동일 요청이 존재하면 에러를 반환하며, REJECTED 이력이 있으면 REQUESTED 상태로 갱신하고 요청 시간을 업데이트합니다.
+  - 분산 락으로 동시 요청 중복 생성 방지, 요청당 Rate Limit(기본: 1초 10회)이 적용됩니다.
+  - 자기 자신에게 요청한 경우 에러를 반환합니다.
+  
+- 요청 수락:
+  - 요청 헤더 `X-user-Id`는 수신자여야 하며, 본인 수신 요청만 처리 가능합니다.
+  - REQUESTED 상태에서만 수락 가능하며, 수락 시 상태가 ACCEPTED로 변경됩니다.
+  - 수락 전 요청자/수신자 모두 친구 수 제한(max-friend) 검증을 수행합니다.
+  
+- 요청 거절:
+  - 요청 헤더 `X-user-Id`는 수신자여야 하며, 본인 수신 요청만 처리 가능합니다.
+  - REQUESTED 상태에서만 거절 가능하며, 거절 시 상태가 REJECTED로 변경됩니다.
+  - 거절된 요청은 이후 동일 사용자 간 재신청이 가능합니다.
 
 ## 🛠 실행 방법
 1. **애플리케이션 실행**:
