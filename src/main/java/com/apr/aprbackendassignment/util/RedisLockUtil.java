@@ -4,7 +4,16 @@ import lombok.RequiredArgsConstructor;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Component;
+/**
+ * =====================================================
+ * Class Name   : RedisLockUtil
+ * Description  :
+ *  - 애플리케이션의 제한 관련 설정을 외부 구성 파일에서 로드하는 클래스
 
+ * 주요 기능
+ *  - getLock 메서드: 두 사용자 ID에 대한 분산 락을 생성
+ * =====================================================
+ */
 @Component
 @RequiredArgsConstructor
 public class RedisLockUtil {

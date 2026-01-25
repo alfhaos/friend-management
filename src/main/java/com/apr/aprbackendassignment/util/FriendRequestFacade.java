@@ -9,7 +9,17 @@ import org.redisson.api.RLock;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.TimeUnit;
+/**
+ * =====================================================
+ * Class Name   : FriendRequestFacade
+ * Description  :
+ *  - 친구 요청 처리를 위한 퍼사드 클래스
+ *  - Redis 기반의 분산 락을 활용하여 동시성 문제 해결
 
+ * 주요 기능
+ *  - requestFriend 메서드: 친구 요청 처리 시 락을 획득하고 해제하는 로직 포함
+ * =====================================================
+ */
 @Component
 @RequiredArgsConstructor
 public class FriendRequestFacade {
