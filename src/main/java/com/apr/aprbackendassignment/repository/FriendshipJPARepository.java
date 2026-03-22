@@ -51,15 +51,6 @@ public interface FriendshipJPARepository extends JpaRepository<Friendship, UUID>
             Pageable pageable
             );
     @Query("""
-    SELECT f
-    FROM Friendship f
-    WHERE f.requester.id = :xUserId
-      AND f.receiver.id = :targetUserId
-    """)
-    Friendship findFriendRequest(
-            @Param("xUserId") Long xUserId
-            ,@Param("targetUserId") Long targetUserId);
-    @Query("""
     SELECT COUNT(f)
     FROM Friendship f
     WHERE (f.requester.id = :userId OR f.receiver.id = :userId)
@@ -86,13 +77,8 @@ public interface FriendshipJPARepository extends JpaRepository<Friendship, UUID>
     int checkConcurrentRequest(
             @Param("userId") Long userId,
             @Param("status") FRIENDSHIP_STATUS status);
-    @Query("""
-    SELECT f
-    FROM Friendship f
-    WHERE f.receiver.id = :userId
-      AND f.status = :status
-    """)
-    List<Friendship> findByAcceptorAndStatus(
-            @Param("userId") Long userId
-            ,@Param("status") FRIENDSHIP_STATUS status);
+
+    Friendship findByRequesterIdAndReceiverId(Long id, Long targetUserId);
+
+    List<Friendship> findByReceiverIdAndStatus(Long id, FRIENDSHIP_STATUS friendshipStatus);
 }

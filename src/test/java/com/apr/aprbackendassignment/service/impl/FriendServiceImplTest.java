@@ -160,7 +160,7 @@ class FriendServiceImplTest {
             throw new CommException(CommResponseStatus.SELF_FRIEND_REQUEST);
         }
         // 거절시 재요청 가능 요구사항
-        Friendship friendship = friendshipJPARepository.findFriendRequest(currentUser.getId(), targetUser.getId());
+        Friendship friendship = friendshipJPARepository.findByRequesterIdAndReceiverId(currentUser.getId(), targetUser.getId());
 
         // 만약 거절 이력이 있을경우 해당 데이터 상태를 REQUESTED로 변경
         if(friendship != null) {
