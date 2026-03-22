@@ -126,7 +126,7 @@ class SampleDataInsert {
     void acceptFriendshipAll() {
         Users currentUser = usersJPARepository.findByIdOrThrow(CURRENT_USER_ID);
         List<Friendship> friendshipList =
-                friendshipJPARepository.findByAcceptorAndStatus(
+                friendshipJPARepository.findByReceiverIdAndStatus(
                         currentUser.getId(), FRIENDSHIP_STATUS.REQUESTED);
 
         for (Friendship friendship : friendshipList) {

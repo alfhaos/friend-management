@@ -13,6 +13,7 @@ import com.apr.aprbackendassignment.util.FriendRequestFacade;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springdoc.core.annotations.ParameterObject;
@@ -68,8 +69,8 @@ public class FriendController {
     @Operation(summary = "친구 신청")
     @PostMapping("/request")
     public CommResponse<CommResponseStatus> requestFriend(
-            @RequestHeader(xUserIdHeader) Long xUserId,
-            @RequestBody FriendRequest friendRequest) {
+            @Positive @RequestHeader(xUserIdHeader) Long xUserId,
+            @Valid @RequestBody FriendRequest friendRequest) {
 
         friendRequestFacade.requestFriend(xUserId, friendRequest);
         return CommResponse.success();
@@ -77,7 +78,7 @@ public class FriendController {
     @Operation(summary = "친구 신청 수락")
     @PostMapping("/accept/{requestId}")
     public CommResponse<CommResponseStatus> requestAccept(
-            @RequestHeader(xUserIdHeader) Long xUserId,
+            @Positive @RequestHeader(xUserIdHeader) Long xUserId,
             @PathVariable(requestIdPath) String requestId){
 
         friendService.requestAccept(xUserId, requestId);
@@ -87,7 +88,7 @@ public class FriendController {
     @Operation(summary = "친구 신청 거절")
     @PostMapping("/reject/{requestId}")
     public CommResponse<CommResponseStatus> requestReject(
-            @RequestHeader(xUserIdHeader) Long xUserId,
+            @Positive @RequestHeader(xUserIdHeader) Long xUserId,
             @PathVariable(requestIdPath) String requestId){
 
         friendService.requestReject(xUserId, requestId);

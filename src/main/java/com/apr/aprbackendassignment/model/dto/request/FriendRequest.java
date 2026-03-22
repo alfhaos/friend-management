@@ -1,5 +1,8 @@
 package com.apr.aprbackendassignment.model.dto.request;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -22,5 +25,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class FriendRequest {
 
+    @NotNull
+    @Positive
     private Long targetUserId;
 }

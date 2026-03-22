@@ -99,7 +99,7 @@ public class FriendServiceImpl implements FriendService {
             throw new CommException(CommResponseStatus.SELF_FRIEND_REQUEST);
         }
         // 거절시 재요청 가능 요구사항
-        Friendship friendship = friendshipJPARepository.findFriendRequest(currentUser.getId(), targetUser.getId());
+        Friendship friendship = friendshipJPARepository.findByRequesterIdAndReceiverId(currentUser.getId(), targetUser.getId());
 
         // 만약 거절 이력이 있을경우 해당 데이터 상태를 REQUESTED로 변경
         if(friendship != null) {
@@ -129,7 +129,7 @@ public class FriendServiceImpl implements FriendService {
                 .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_FRIENDSHIP));
 
         // 수신자가 아닌 경우 예외 처리
-        if(friendship.getReceiver() != currentUser) {
+        if(friendship.getReceiver().getId() != currentUser.getId()) {
             throw new CommException(CommResponseStatus.ONLY_RECEIVER_CAN_PROCESS);
         }
 
@@ -164,7 +164,7 @@ public class FriendServiceImpl implements FriendService {
                 .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_FRIENDSHIP));
 
         // 수신자가 아닌 경우 예외 처리
-        if(friendship.getReceiver() != currentUser) {
+        if(friendship.getReceiver().getId() != currentUser.getId()) {
             throw new CommException(CommResponseStatus.ONLY_RECEIVER_CAN_PROCESS);
         }
         // 요청 상태가 REQUEST가 아닐 경우 예외 처리
