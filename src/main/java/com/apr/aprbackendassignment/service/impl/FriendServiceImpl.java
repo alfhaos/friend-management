@@ -91,6 +91,15 @@ public class FriendServiceImpl implements FriendService {
 
         // 이미 받은 요청이 있는지 확인
         Friendship existingRequest = friendshipJPARepository.checkExistingRequest(currentUser.getId(),friendRequest.getTargetUserId());
+        if (existingRequest != null) {
+            throw new CommException(CommResponseStatus.ALREADY_RREQUESTED_FRIENDSHIP);
+        }
+        // 자기자신에게 친구 요청 보낼 경우 예외 처리
+        if(currentUserId.equals(targetUserId)) {
+            throw new CommException(CommResponseStatus.SELF_FRIEND_REQUEST);
+        }
+        // 거절시 재요청 가능 요구사항
+        Friendship friendship = friendshipJPARepository.findByRequesterIdAndReceiverId(currentUser.getId(), targetUser.getId());
 
         if(existingRequest == null) {
             Friendship friendShip =
