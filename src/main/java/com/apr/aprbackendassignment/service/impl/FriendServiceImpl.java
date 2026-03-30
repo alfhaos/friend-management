@@ -16,7 +16,6 @@ import com.apr.aprbackendassignment.service.FriendService;
 import com.apr.aprbackendassignment.util.LimitProperties;
 import com.apr.aprbackendassignment.util.RedisLockUtil;
 import lombok.RequiredArgsConstructor;
-import org.redisson.api.RLock;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -24,7 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 /**
  * =====================================================
@@ -82,12 +80,14 @@ public class FriendServiceImpl implements FriendService {
     @Transactional
     @Override
     public void requestFriend(Long xUserId, FriendRequest friendRequest) {
+        // 자기자신에게 친구 요청 보낼 경우 예외 처리
+        if(xUserId.equals(friendRequest.getTargetUserId())) {
+            throw new CommException(CommResponseStatus.SELF_FRIEND_REQUEST);
+        }
+
         Users currentUser = getUserOrThrow(xUserId);
 
-        Long currentUserId = currentUser.getId();
-
         Users targetUser = getUserOrThrow(friendRequest.getTargetUserId());
-        Long targetUserId = targetUser.getId();
 
         // 이미 받은 요청이 있는지 확인
         Friendship existingRequest = friendshipJPARepository.checkExistingRequest(currentUser.getId(),friendRequest.getTargetUserId());
@@ -101,15 +101,7 @@ public class FriendServiceImpl implements FriendService {
         // 거절시 재요청 가능 요구사항
         Friendship friendship = friendshipJPARepository.findByRequesterIdAndReceiverId(currentUser.getId(), targetUser.getId());
 
-        // 만약 거절 이력이 있을경우 해당 데이터 상태를 REQUESTED로 변경
-        if(friendship != null) {
-            if(friendship.getStatus().equals(FRIENDSHIP_STATUS.REJECTED)) {
-                friendship.updateRequestedAt(LocalDateTime.now());
-                friendship.updateStatus(FRIENDSHIP_STATUS.REQUESTED);
-            } else {
-                throw new CommException(CommResponseStatus.ALREADY_REQUESTED_FRIEND);
-            }
-        } else {
+        if(existingRequest == null) {
             Friendship friendShip =
                     Friendship.create(
                             currentUser,
@@ -117,7 +109,26 @@ public class FriendServiceImpl implements FriendService {
                             FRIENDSHIP_STATUS.REQUESTED
                     );
             friendshipJPARepository.save(friendShip);
+            return;
         }
+
+        if (existingRequest.getStatus().equals(FRIENDSHIP_STATUS.REQUESTED)) {
+            throw new CommException(CommResponseStatus.ALREADY_RREQUESTED_FRIENDSHIP);
+        }
+
+        if(existingRequest.getStatus().equals(FRIENDSHIP_STATUS.ACCEPTED)) {
+            throw new CommException(CommResponseStatus.ALREADY_REQUESTED_FRIEND);
+        }
+
+        // 거절시 재요청 가능 요구사항
+        // 만약 거절 이력이 있을경우 해당 데이터 상태를 REQUESTED로 변경
+        if(existingRequest.getStatus().equals(FRIENDSHIP_STATUS.REJECTED)) {
+                existingRequest.updateRequester(currentUser);   // B→A 재요청이면 requester를 B로 변경
+                existingRequest.updateReceiver(targetUser);     // receiver를 A로 변경
+                existingRequest.updateUpdateAt(LocalDateTime.now());
+                existingRequest.updateStatus(FRIENDSHIP_STATUS.REQUESTED);
+        }
+
     }
 
     @Transactional
@@ -129,7 +140,7 @@ public class FriendServiceImpl implements FriendService {
                 .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_FRIENDSHIP));
 
         // 수신자가 아닌 경우 예외 처리
-        if(friendship.getReceiver().getId() != currentUser.getId()) {
+        if(!friendship.getReceiver().getId().equals(currentUser.getId())) {
             throw new CommException(CommResponseStatus.ONLY_RECEIVER_CAN_PROCESS);
         }
 
@@ -164,7 +175,7 @@ public class FriendServiceImpl implements FriendService {
                 .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_FRIENDSHIP));
 
         // 수신자가 아닌 경우 예외 처리
-        if(friendship.getReceiver().getId() != currentUser.getId()) {
+        if(!friendship.getReceiver().getId().equals(currentUser.getId())) {
             throw new CommException(CommResponseStatus.ONLY_RECEIVER_CAN_PROCESS);
         }
         // 요청 상태가 REQUEST가 아닐 경우 예외 처리

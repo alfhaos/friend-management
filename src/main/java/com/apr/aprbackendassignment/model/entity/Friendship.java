@@ -51,11 +51,18 @@ public class Friendship extends CommTimeEntity {
         return new Friendship(requester, receiver, status);
     }
 
-    public void updateRequestedAt(LocalDateTime time) {
-        this.createdTime = time;
+    public void updateUpdateAt(LocalDateTime time) {
+        this.updatedTime = time;
     }
     public void updateStatus(FRIENDSHIP_STATUS status) {
         this.status = status;
+    }
+
+    public void updateRequester(Users requester) {
+        this.requester = requester;
+    }
+    public void updateReceiver(Users receiver) {
+        this.receiver = receiver;
     }
 }
 

@@ -85,18 +85,12 @@ class FriendServiceImplTest {
         PageRequestParam param = new PageRequestParam(1, 5, "approvedAt,desc");
         Pageable pageable = param.toPageable();
 
-        Users currentUser = usersJPARepository.findByIdOrThrow(CURRENT_USER_ID);
-        Page<Friendship> result = friendshipJPARepository.getFriendsList(currentUser.getId(), FRIENDSHIP_STATUS.ACCEPTED, pageable);
-        Page<FriendsResponse> dtoPage = FriendsResponse.fromEntityPage(result, currentUser.getId());
+        PageResponse<FriendsResponse> response = friendService.getFriendsList(pageable);
 
-        PageResponse<FriendsResponse> response =  new PageResponse<>(
-                dtoPage.getTotalPages(),
-                (int) dtoPage.getTotalElements(),
-                dtoPage.getContent()
-        );
-
-        log.info("pageResponse getTotalCount : {}", response.getTotalCount());
-        log.info("pageResponse getTotalPages : {}", response.getTotalPages());
+        assertThat(response).isNotNull();
+        assertThat(response.getTotalPages()).isGreaterThanOrEqualTo(1);
+        assertThat(response.getTotalCount()).isGreaterThanOrEqualTo(0);
+        assertThat(response.getItems()).isNotNull();
     }
 
 
@@ -108,92 +102,43 @@ class FriendServiceImplTest {
         Pageable pageable = param.toPageable();
         WINDOW_SLIDING windowSliding = WINDOW_SLIDING.DAY;
 
-        Users currentUser = usersJPARepository.findById(CURRENT_USER_ID)
-                .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_USER));
+        PageResponse<FriendsRequestsResponse> response =  friendService.getReceiveFriendsList(pageable, windowSliding);
 
-
-        LocalDateTime time = windowSliding.calculateTimeWindow();
-        LocalDateTime start = null;
-        LocalDateTime end = null;
-
-        // over일 경우 null로 넘긴다.
-        if (time != null) {
-            LocalDate date = time.toLocalDate();
-            start = date.atStartOfDay();
-            end = date.plusDays(1).atStartOfDay();
-        }
-        Page<Friendship> result = friendshipJPARepository.getFriendsReceiveList(currentUser.getId(), start, end, pageable);
-        Page<FriendsRequestsResponse> dtoPage =  FriendsRequestsResponse.fromEntityPage(result);
-        PageResponse<FriendsRequestsResponse> response =  new PageResponse<>(
-                dtoPage.getTotalPages(),
-                (int) dtoPage.getTotalElements(),
-                dtoPage.getContent()
-        );
-        log.info("pageResponse getTotalCount : {}", response.getTotalCount());
-        log.info("pageResponse getTotalPages : {}", response.getTotalPages());
+        assertThat(response).isNotNull();
+        assertThat(response.getTotalPages()).isGreaterThanOrEqualTo(1);
+        assertThat(response.getTotalCount()).isGreaterThanOrEqualTo(0);
+        assertThat(response.getItems()).isNotNull();
 
     }
     // 기능 요구 사항 3 : 친구 신청 테스트 코드
     @Test
     @Transactional
-    @Rollback(false)
     void requestFriend() {
-
-        Users currentUser = usersJPARepository.findById(CURRENT_USER_ID)
-                .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_USER));
 
         FriendRequest friendRequest = new FriendRequest(4L);
 
-        // 이미 받은 요청이 있는지 확인
-        Friendship existingRequest = friendshipJPARepository.checkExistingRequest(currentUser.getId(),friendRequest.getTargetUserId());
-        if (existingRequest != null) {
-            throw new CommException(CommResponseStatus.ALREADY_RREQUESTED_FRIENDSHIP);
-        }
+        friendRequestFacade.requestFriend(CURRENT_USER_ID, friendRequest);
 
-        // 조회했을떄 존재하지 않는 상대방일 경우 예외 처리
-        Users targetUser = usersJPARepository.findById(friendRequest.getTargetUserId())
-                .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_USER));
-        Long targetUserId = targetUser.getId();
+        Friendship friendship = friendshipJPARepository.findByRequesterIdAndReceiverId(CURRENT_USER_ID, friendRequest.getTargetUserId());
 
-        // 자기자신에게 친구 요청 보낼 경우 예외 처리
-        if(currentUser.getId().equals(targetUserId)) {
-            throw new CommException(CommResponseStatus.SELF_FRIEND_REQUEST);
-        }
-        // 거절시 재요청 가능 요구사항
-        Friendship friendship = friendshipJPARepository.findByRequesterIdAndReceiverId(currentUser.getId(), targetUser.getId());
-
-        // 만약 거절 이력이 있을경우 해당 데이터 상태를 REQUESTED로 변경
-        if(friendship != null) {
-            if(friendship.getStatus().equals(FRIENDSHIP_STATUS.REJECTED)) {
-                friendship.updateRequestedAt(LocalDateTime.now());
-                friendship.updateStatus(FRIENDSHIP_STATUS.REQUESTED);
-            } else {
-                throw new CommException(CommResponseStatus.ALREADY_REQUESTED_FRIEND);
-            }
-        } else {
-            Friendship friendShip =
-                    Friendship.create(
-                            currentUser,
-                            targetUser,
-                            FRIENDSHIP_STATUS.REQUESTED
-                    );
-            friendshipJPARepository.save(friendShip);
-        }
+        assertThat(friendship.getStatus()).isEqualTo(FRIENDSHIP_STATUS.REQUESTED);
+        assertThat(friendship.getRequester().getId()).isEqualTo(CURRENT_USER_ID);
+        assertThat(friendship.getReceiver().getId()).isEqualTo(friendRequest.getTargetUserId());
     }
 
     // 기능 요구 사항 3-1 : 친구 신청 거절 테스트 코드
     @Test
     @Transactional
-    @Rollback(false)
     void rejectedRequestFriend() {
         // 테이블의 request-id 값 입력
         String requestId = "f5143ce5-9bf7-459e-8d65-7b04a4c7071b";
+
+        friendService.requestReject(CURRENT_USER_ID, requestId);
+
         Friendship friendship = friendshipJPARepository.findById(UUID.fromString(requestId))
                 .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_FRIENDSHIP));
 
-        assertEquals(String.valueOf(friendship.getId()), requestId,"아이디가 불일치 합니다.");
-
-        friendship.updateStatus(FRIENDSHIP_STATUS.REJECTED);
+        assertThat(friendship.getStatus()).isEqualTo(FRIENDSHIP_STATUS.REJECTED);
     }
 
     // 기능 요구 사항 3-2 : 요청 제한 테스트 코드
@@ -212,7 +157,7 @@ class FriendServiceImplTest {
 
             mockMvc.perform(
                             post(url)
-                                    .header("X-USER-ID", 1L)
+                                        .header("X-USER-ID", CURRENT_USER_ID)
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(body)
                     ).andExpect(status().isOk());
@@ -222,8 +167,7 @@ class FriendServiceImplTest {
         FriendRequest lastRequest =
                 new FriendRequest(100L);
 
-        String lastBody =
-                objectMapper.writeValueAsString(lastRequest);
+        String lastBody = objectMapper.writeValueAsString(lastRequest);
         mockMvc.perform(
                         post(url)
                                 .header("X-USER-ID", 1L)
@@ -236,8 +180,6 @@ class FriendServiceImplTest {
     // 기능 요구 사항 3-3 : 친구 신청 동시성 제어
     @Test
     @Transactional
-    @DisplayName("A가 B에게, B가 A에게 동시에 신청해도 하나만 성공")
-    @Rollback(false)
     void requestFriend_concurrentOnlyOneRequestCreated() throws Exception {
         // Given
         Long userA = 1L;
@@ -286,31 +228,8 @@ class FriendServiceImplTest {
     void requestAccept_test() throws Exception {
         // friendShip 테이블의 request-id 값 입력
         String requestId = "b1ea936b-7c78-4055-9015-7d72d6700c45";
-        Long xUserId = CURRENT_USER_ID;
-
-        Users currentUser = usersJPARepository.findById(xUserId)
-                .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_USER));
-
-        Friendship friendship = friendshipJPARepository.findById(UUID.fromString(requestId))
-                .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_FRIENDSHIP));
-
-        // 수신자가 아닌 경우 예외 처리
-        if(friendship.getReceiver() != currentUser) {
-            throw new CommException(CommResponseStatus.ONLY_RECEIVER_CAN_PROCESS);
-        }
-
-        int currentUserFriendCnt = friendshipJPARepository.countUsersFriends(currentUser.getId(), FRIENDSHIP_STATUS.ACCEPTED);
-
-        // 현재 로그인 유저의 친구 수 체크
-        if(currentUserFriendCnt >= limitProperties.getMaxFriend()) {
-            throw new CommException(CommResponseStatus.FRIEND_LIMIT_EXCEEDED_FOR_ACCEPTOR);
-        }
-        // 요청 상태가 REQUEST가 아닐 경우 예외 처리
-        if(!friendship.getStatus().equals(FRIENDSHIP_STATUS.REQUESTED)) {
-            throw new CommException(CommResponseStatus.REQUEST_STATUS_ERROR);
-        }
-
-        friendship.updateStatus(FRIENDSHIP_STATUS.ACCEPTED);
+        
+        friendService.requestAccept(CURRENT_USER_ID, requestId);
 
         Friendship ckFriendship = friendshipJPARepository.findById(UUID.fromString(requestId))
                 .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_FRIENDSHIP));
@@ -326,23 +245,11 @@ class FriendServiceImplTest {
         String requestId = "737d4034-5b13-43c0-9be2-50af7fc27cb3";
         Long xUserId = CURRENT_USER_ID;
 
-        Users currentUser = usersJPARepository.findById(xUserId)
-                .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_USER));
-
-        Friendship friendship = friendshipJPARepository.findById(UUID.fromString(requestId))
+        friendService.requestReject(xUserId, requestId);
+        
+        Friendship ckFriendship = friendshipJPARepository.findById(UUID.fromString(requestId))
                 .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_FRIENDSHIP));
-
-        // 수신자가 아닌 경우 예외 처리
-        if(friendship.getReceiver() != currentUser) {
-            throw new CommException(CommResponseStatus.ONLY_RECEIVER_CAN_PROCESS);
-        }
-
-        // 요청 상태가 REQUEST가 아닐 경우 예외 처리
-        if(!friendship.getStatus().equals(FRIENDSHIP_STATUS.REQUESTED)) {
-            throw new CommException(CommResponseStatus.REQUEST_STATUS_ERROR);
-        }
-
-        friendship.updateStatus(FRIENDSHIP_STATUS.REJECTED);
+        assertEquals(ckFriendship.getStatus(), FRIENDSHIP_STATUS.REJECTED, "친구 상태가 REJECTE가 아닙니다.");
     }
 
 }
