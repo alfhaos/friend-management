@@ -25,9 +25,9 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class FriendsResponse {
 
-    private Long user_id;
-    private Long from_user_id;
-    private Long to_user_id;
+    private Long userId;
+    private Long fromUserId;
+    private Long toUserId;
     private FRIENDSHIP_STATUS status;
     private LocalDateTime approvedAt;
 
@@ -37,9 +37,9 @@ public class FriendsResponse {
             Long friendId = f.getRequester().getId().equals(CURRENT_USER_ID)
                     ? f.getReceiver().getId() :  f.getRequester().getId();
             return FriendsResponse.builder()
-                    .user_id(friendId)
-                    .from_user_id(f.getRequester().getId())
-                    .to_user_id(f.getReceiver().getId())
+                    .userId(friendId)
+                    .fromUserId(f.getRequester().getId())
+                    .toUserId(f.getReceiver().getId())
                     .approvedAt(f.getUpdatedTime())
                     .build();
         });

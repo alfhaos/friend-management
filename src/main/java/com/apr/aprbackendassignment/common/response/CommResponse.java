@@ -20,9 +20,9 @@ public record CommResponse<T>(
     // 성공
     public static <T> CommResponse<T> success(T data) {
         return new CommResponse<>(
-                null,
-                null,
-                null,
+                CommResponseStatus.SUCCESS.getCode(),
+                CommResponseStatus.SUCCESS.getMessage(),
+                CommResponseStatus.SUCCESS.getHttpStatus().value(),
                 data
         );
     }

@@ -24,16 +24,16 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class FriendsRequestsResponse {
 
-    private String request_id;
-    private Long request_user_id;
+    private String requestId;
+    private Long requestUserId;
     private LocalDateTime requestedAt;
 
     // 친구 목록 조회에서 friendshipPage 를 FriendshipDto Page 로 변환
     public static Page<FriendsRequestsResponse> fromEntityPage(Page<Friendship> friendshipPage) {
         return friendshipPage.map(f -> {
             return FriendsRequestsResponse.builder()
-                    .request_id(String.valueOf(f.getId()))
-                    .request_user_id(f.getRequester().getId())
+                    .requestId(String.valueOf(f.getId()))
+                    .requestUserId(f.getRequester().getId())
                     .requestedAt(f.getCreatedTime())
                     .build();
         });
