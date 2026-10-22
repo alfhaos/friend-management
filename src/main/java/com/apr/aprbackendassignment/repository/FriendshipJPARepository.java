@@ -38,18 +38,26 @@ public interface FriendshipJPARepository extends JpaRepository<Friendship, UUID>
     SELECT f
     FROM Friendship f
     WHERE f.receiver.id = :userId
-      AND (
-           :start IS NULL 
-           OR (f.createdTime >= :start AND f.createdTime < :end)
-      )
+      AND f.createdTime >= :start AND f.createdTime < :end
       AND f.status = 'REQUESTED'
     """)
-    Page<Friendship> getFriendsReceiveList(
+    Page<Friendship> getFriendsReceiveListInWindow(
             @Param("userId") Long currentUserId,
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end,
             Pageable pageable
             );
+
+    default Page<Friendship> getFriendsReceiveList(Long currentUserId, LocalDateTime start,
+                                                  LocalDateTime end, Pageable pageable) {
+        if (start == null) {
+            return findByReceiverIdAndStatus(currentUserId, FRIENDSHIP_STATUS.REQUESTED, pageable);
+        }
+        return getFriendsReceiveListInWindow(currentUserId, start, end, pageable);
+    }
+
+    Page<Friendship> findByReceiverIdAndStatus(Long id, FRIENDSHIP_STATUS status, Pageable pageable);
+
     @Query("""
     SELECT COUNT(f)
     FROM Friendship f

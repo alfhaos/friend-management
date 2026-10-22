@@ -3,10 +3,10 @@ server:
 # ================== DB 설정 ==================
 spring:
   datasource:
-    url: jdbc:h2:tcp://localhost/~/apr
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:apr}
+    driver-class-name: org.postgresql.Driver
+    username: ${POSTGRES_USER:apr}
+    password: ${POSTGRES_PASSWORD:apr_local_password}
 # ================= REDIS 설정 ==================
   data:
     redis:
@@ -17,7 +17,7 @@ spring:
       default-property-inclusion: non_null
   # ================== JPA 설정 ==================
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: update
     show-sql: true

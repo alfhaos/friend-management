@@ -95,7 +95,7 @@ public class FriendServiceImpl implements FriendService {
             throw new CommException(CommResponseStatus.ALREADY_RREQUESTED_FRIENDSHIP);
         }
         // 자기자신에게 친구 요청 보낼 경우 예외 처리
-        if(currentUserId.equals(targetUserId)) {
+        if(currentUser.getId().equals(targetUser.getId())) {
             throw new CommException(CommResponseStatus.SELF_FRIEND_REQUEST);
         }
         // 거절시 재요청 가능 요구사항

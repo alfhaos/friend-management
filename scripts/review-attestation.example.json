@@ -1,0 +1,9 @@
+{
+  "scope": "setup-checkpoint",
+  "stagedTree": "REPLACE_WITH_GIT_WRITE_TREE_AFTER_STAGING",
+  "verdict": "approved",
+  "reviewer": "REPLACE_WITH_INDEPENDENT_REVIEWER_ID",
+  "reviewedAt": "REPLACE_WITH_UTC_ISO_8601_TIME",
+  "completedSteps": [1],
+  "findings": []
+}

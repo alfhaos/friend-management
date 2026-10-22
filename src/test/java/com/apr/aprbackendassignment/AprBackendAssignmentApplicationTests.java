@@ -1,10 +1,9 @@
 package com.apr.aprbackendassignment;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+import com.apr.aprbackendassignment.support.IntegrationTestSupport;
 
-@SpringBootTest
-class AprBackendAssignmentApplicationTests {
+class AprBackendAssignmentApplicationTests extends IntegrationTestSupport {
 
     @Test
     void contextLoads() {

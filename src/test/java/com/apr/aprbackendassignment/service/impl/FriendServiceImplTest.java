@@ -3,7 +3,6 @@ package com.apr.aprbackendassignment.service.impl;
 import com.apr.aprbackendassignment.common.exception.CommException;
 import com.apr.aprbackendassignment.common.request.PageRequestParam;
 import com.apr.aprbackendassignment.common.response.CommResponseStatus;
-import com.apr.aprbackendassignment.common.response.PageResponse;
 import com.apr.aprbackendassignment.model.constant.FRIENDSHIP_STATUS;
 import com.apr.aprbackendassignment.model.constant.WINDOW_SLIDING;
 import com.apr.aprbackendassignment.model.dto.request.FriendRequest;
@@ -11,245 +10,249 @@ import com.apr.aprbackendassignment.model.dto.response.FriendsRequestsResponse;
 import com.apr.aprbackendassignment.model.dto.response.FriendsResponse;
 import com.apr.aprbackendassignment.model.entity.Friendship;
 import com.apr.aprbackendassignment.model.entity.Users;
-import com.apr.aprbackendassignment.repository.FriendshipJPARepository;
-import com.apr.aprbackendassignment.repository.UsersJPARepository;
 import com.apr.aprbackendassignment.service.FriendService;
+import com.apr.aprbackendassignment.support.IntegrationTestSupport;
 import com.apr.aprbackendassignment.util.FriendRequestFacade;
-import com.apr.aprbackendassignment.util.LimitProperties;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.http.MediaType;
-import org.springframework.test.annotation.Rollback;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.UUID;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
+import static com.apr.aprbackendassignment.model.constant.FRIENDSHIP_STATUS.*;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * =====================================================
- * Class Name   : FriendServiceTest
- * Description  :
- *  - 친구 관계 관리를 위한 서비스 구현 클래스 테스트
-
- * 주요 기능
- *  - FriendService 클래스의 메서드 테스트
- * =====================================================
- */
-@SpringBootTest
-@Slf4j
-@AutoConfigureMockMvc
-class FriendServiceImplTest {
-
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private LimitProperties limitProperties;
+class FriendServiceImplTest extends IntegrationTestSupport {
 
     @Autowired
     private FriendService friendService;
-
     @Autowired
-    private FriendRequestFacade friendRequestFacade;
+    private FriendRequestFacade facade;
 
-    @Autowired
-    private UsersJPARepository usersJPARepository;
-    @Autowired
-    private FriendshipJPARepository friendshipJPARepository;
-    private static final Long CURRENT_USER_ID = 1L;
-
-    // 기능 요구 사항 1 : 친구 목록 조회 테스트 코드
     @Test
-    @Transactional
-    void getFriendsList() {
-        PageRequestParam param = new PageRequestParam(1, 5, "approvedAt,desc");
-        Pageable pageable = param.toPageable();
+    void listsOnlyCurrentUsersAcceptedFriendsInCreatedTimeOrder() {
+        Users current = currentListUser();
+        Users older = fixture.user("older");
+        Users newer = fixture.user("newer");
+        Users outsider = fixture.user("outsider");
+        LocalDateTime now = LocalDateTime.now();
+        fixture.relationshipAt(current, older, ACCEPTED, now.minusDays(2));
+        fixture.relationshipAt(newer, current, ACCEPTED, now.minusDays(1));
+        fixture.relationship(current, outsider, REQUESTED);
+        fixture.relationship(older, outsider, ACCEPTED);
 
-        PageResponse<FriendsResponse> response = friendService.getFriendsList(pageable);
+        var response = friendService.getFriendsList(new PageRequestParam(0, 1, "approvedAt,desc").toPageable());
 
-        assertThat(response).isNotNull();
-        assertThat(response.getTotalPages()).isGreaterThanOrEqualTo(1);
-        assertThat(response.getTotalCount()).isGreaterThanOrEqualTo(0);
-        assertThat(response.getItems()).isNotNull();
+        assertThat(response.getTotalCount()).isEqualTo(2);
+        assertThat(response.getTotalPages()).isEqualTo(2);
+        assertThat(response.getItems()).extracting(FriendsResponse::getUserId).containsExactly(newer.getId());
+
+        var secondPage = friendService.getFriendsList(new PageRequestParam(1, 1, "approvedAt,desc").toPageable());
+        assertThat(secondPage.getItems()).extracting(FriendsResponse::getUserId).containsExactly(older.getId());
     }
 
-
-    // 기능 요구 사항 2 : 받은 친구 신청 목록 조회 테스트 코드
     @Test
-    @Transactional
-    void getFriendsReceiveList() {
-        PageRequestParam param = new PageRequestParam(0, 30, "requestedAt,desc");
-        Pageable pageable = param.toPageable();
-        WINDOW_SLIDING windowSliding = WINDOW_SLIDING.DAY;
+    void listsOnlyIncomingPendingRequestsInsideWindow() {
+        Users current = currentListUser();
+        Users recent = fixture.user("recent");
+        Users old = fixture.user("old");
+        Users outgoing = fixture.user("outgoing");
+        Users accepted = fixture.user("accepted");
+        Users rejected = fixture.user("rejected");
+        LocalDateTime now = LocalDateTime.now();
+        Friendship included = fixture.relationshipAt(recent, current, REQUESTED, now.minusMinutes(5));
+        fixture.relationshipAt(old, current, REQUESTED, now.minusDays(3));
+        fixture.relationship(current, outgoing, REQUESTED);
+        fixture.relationship(accepted, current, ACCEPTED);
+        fixture.relationship(rejected, current, REJECTED);
 
-        PageResponse<FriendsRequestsResponse> response =  friendService.getReceiveFriendsList(pageable, windowSliding);
+        var response = friendService.getReceiveFriendsList(
+                new PageRequestParam(0, 30, "requestedAt,desc").toPageable(), WINDOW_SLIDING.DAY);
 
-        assertThat(response).isNotNull();
-        assertThat(response.getTotalPages()).isGreaterThanOrEqualTo(1);
-        assertThat(response.getTotalCount()).isGreaterThanOrEqualTo(0);
-        assertThat(response.getItems()).isNotNull();
-
-    }
-    // 기능 요구 사항 3 : 친구 신청 테스트 코드
-    @Test
-    @Transactional
-    void requestFriend() {
-
-        FriendRequest friendRequest = new FriendRequest(4L);
-
-        friendRequestFacade.requestFriend(CURRENT_USER_ID, friendRequest);
-
-        Friendship friendship = friendshipJPARepository.findByRequesterIdAndReceiverId(CURRENT_USER_ID, friendRequest.getTargetUserId());
-
-        assertThat(friendship.getStatus()).isEqualTo(FRIENDSHIP_STATUS.REQUESTED);
-        assertThat(friendship.getRequester().getId()).isEqualTo(CURRENT_USER_ID);
-        assertThat(friendship.getReceiver().getId()).isEqualTo(friendRequest.getTargetUserId());
+        assertThat(response.getTotalCount()).isEqualTo(1);
+        assertThat(response.getItems()).extracting(FriendsRequestsResponse::getRequestId)
+                .containsExactly(included.getId().toString());
+        assertThat(response.getItems()).extracting(FriendsRequestsResponse::getRequestUserId)
+                .containsExactly(recent.getId());
     }
 
-    // 기능 요구 사항 3-1 : 친구 신청 거절 테스트 코드
     @Test
-    @Transactional
-    void rejectedRequestFriend() {
-        // 테이블의 request-id 값 입력
-        String requestId = "f5143ce5-9bf7-459e-8d65-7b04a4c7071b";
+    void listsAllIncomingRequestsWithoutTimeWindowInRequestOrder() {
+        Users current = currentListUser();
+        Users old = fixture.user("old");
+        Users recent = fixture.user("recent");
+        LocalDateTime now = LocalDateTime.now();
+        Friendship olderRequest = fixture.relationshipAt(old, current, REQUESTED, now.minusDays(120));
+        Friendship newerRequest = fixture.relationshipAt(recent, current, REQUESTED, now.minusMinutes(1));
 
-        friendService.requestReject(CURRENT_USER_ID, requestId);
+        var response = friendService.getReceiveFriendsList(
+                new PageRequestParam(0, 30, "requestedAt,desc").toPageable(), WINDOW_SLIDING.OVER);
 
-        Friendship friendship = friendshipJPARepository.findById(UUID.fromString(requestId))
-                .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_FRIENDSHIP));
-
-        assertThat(friendship.getStatus()).isEqualTo(FRIENDSHIP_STATUS.REJECTED);
+        assertThat(response.getTotalCount()).isEqualTo(2);
+        assertThat(response.getItems()).extracting(FriendsRequestsResponse::getRequestId)
+                .containsExactly(newerRequest.getId().toString(), olderRequest.getId().toString());
     }
 
-    // 기능 요구 사항 3-2 : 요청 제한 테스트 코드
     @Test
-    @Transactional
-    void rateLimit_test() throws Exception {
-        String url = "/api/friends/request";
+    void createsPendingRequestAndCommitsBeforeFacadeReturns() {
+        Users requester = fixture.user("requester");
+        Users receiver = fixture.user("receiver");
 
-        // 10번 정상 요청
-        for (int i = 0; i < 10; i++) {
+        facade.requestFriend(requester.getId(), new FriendRequest(receiver.getId()));
 
-            FriendRequest request =
-                    new FriendRequest((long) i + 2); // 매번 다른 사용자
+        // A separate repository transaction observes the commit; no test transaction surrounds the Facade.
+        Friendship saved = friendships.findByRequesterIdAndReceiverId(requester.getId(), receiver.getId());
+        assertThat(saved).isNotNull();
+        assertThat(saved.getStatus()).isEqualTo(REQUESTED);
+        assertThat(saved.getRequester().getId()).isEqualTo(requester.getId());
+        assertThat(saved.getReceiver().getId()).isEqualTo(receiver.getId());
+        assertThat(saved.getCreatedTime()).isNotNull();
+        assertThat(friendships.count()).isEqualTo(1);
+    }
 
-            String body = objectMapper.writeValueAsString(request);
+    @Test
+    void rejectsSelfRequestWithoutCreatingRelationship() {
+        Users requester = fixture.user("requester");
+        assertFailure(() -> facade.requestFriend(requester.getId(), new FriendRequest(requester.getId())),
+                CommResponseStatus.SELF_FRIEND_REQUEST);
+        assertThat(friendships.count()).isZero();
+    }
 
-            mockMvc.perform(
-                            post(url)
-                                        .header("X-USER-ID", CURRENT_USER_ID)
-                                    .contentType(MediaType.APPLICATION_JSON)
-                                    .content(body)
-                    ).andExpect(status().isOk());
+    @Test
+    void rejectsMissingTargetWithoutCreatingRelationship() {
+        Users requester = fixture.user("requester");
+        Users removed = fixture.user("removed");
+        users.deleteById(removed.getId());
+        assertFailure(() -> facade.requestFriend(requester.getId(), new FriendRequest(removed.getId())),
+                CommResponseStatus.NOT_FOUND_USER);
+        assertThat(friendships.count()).isZero();
+    }
+
+    @Test
+    void rejectsReverseDuplicateWithoutCreatingSecondRelationship() {
+        Users requester = fixture.user("requester");
+        Users receiver = fixture.user("receiver");
+        Friendship original = fixture.relationship(requester, receiver, REQUESTED);
+        assertFailure(() -> facade.requestFriend(receiver.getId(), new FriendRequest(requester.getId())),
+                CommResponseStatus.ALREADY_RREQUESTED_FRIENDSHIP);
+        assertThat(friendships.count()).isEqualTo(1);
+        assertThat(reload(original).getStatus()).isEqualTo(REQUESTED);
+    }
+
+    @Test
+    void acceptsPendingRequestForBothUsers() {
+        Users requester = fixture.user("requester");
+        Users receiver = fixture.user("receiver");
+        Friendship pending = fixture.relationship(requester, receiver, REQUESTED);
+        friendService.requestAccept(receiver.getId(), pending.getId().toString());
+        assertThat(reload(pending).getStatus()).isEqualTo(ACCEPTED);
+        assertThat(friendships.countUsersFriends(requester.getId(), ACCEPTED)).isEqualTo(1);
+        assertThat(friendships.countUsersFriends(receiver.getId(), ACCEPTED)).isEqualTo(1);
+    }
+
+    @Test
+    void rejectsPendingRequestWithoutAddingFriends() {
+        Users requester = fixture.user("requester");
+        Users receiver = fixture.user("receiver");
+        Friendship pending = fixture.relationship(requester, receiver, REQUESTED);
+        friendService.requestReject(receiver.getId(), pending.getId().toString());
+        assertThat(reload(pending).getStatus()).isEqualTo(REJECTED);
+        assertThat(friendships.countUsersFriends(requester.getId(), ACCEPTED)).isZero();
+        assertThat(friendships.countUsersFriends(receiver.getId(), ACCEPTED)).isZero();
+    }
+
+    @Test
+    void preventsThirdPartyFromAcceptingOrRejecting() {
+        Users requester = fixture.user("requester");
+        Users receiver = fixture.user("receiver");
+        Users outsider = fixture.user("outsider");
+        Friendship pending = fixture.relationship(requester, receiver, REQUESTED);
+        assertFailure(() -> friendService.requestAccept(outsider.getId(), pending.getId().toString()),
+                CommResponseStatus.ONLY_RECEIVER_CAN_PROCESS);
+        assertFailure(() -> friendService.requestReject(outsider.getId(), pending.getId().toString()),
+                CommResponseStatus.ONLY_RECEIVER_CAN_PROCESS);
+        assertThat(reload(pending).getStatus()).isEqualTo(REQUESTED);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = FRIENDSHIP_STATUS.class, names = {"ACCEPTED", "REJECTED"})
+    void preventsProcessingCompletedRequest(FRIENDSHIP_STATUS status) {
+        Users requester = fixture.user("requester");
+        Users receiver = fixture.user("receiver");
+        Friendship completed = fixture.relationship(requester, receiver, status);
+        assertFailure(() -> friendService.requestAccept(receiver.getId(), completed.getId().toString()),
+                CommResponseStatus.REQUEST_STATUS_ERROR);
+        assertFailure(() -> friendService.requestReject(receiver.getId(), completed.getId().toString()),
+                CommResponseStatus.REQUEST_STATUS_ERROR);
+        assertThat(reload(completed).getStatus()).isEqualTo(status);
+    }
+
+    @Test
+    void concurrentOppositeRequestsCreateExactlyOneRelationship() throws Exception {
+        Users first = fixture.user("first");
+        Users second = fixture.user("second");
+        Users outsider = fixture.user("outsider");
+        fixture.relationship(first, outsider, REQUESTED);
+        var executor = Executors.newFixedThreadPool(2);
+        var ready = new CountDownLatch(2);
+        var start = new CountDownLatch(1);
+        try {
+            var forward = executor.submit(() -> requestAfterStart(first, second, ready, start));
+            var reverse = executor.submit(() -> requestAfterStart(second, first, ready, start));
+            assertThat(ready.await(10, TimeUnit.SECONDS)).as("workers are ready").isTrue();
+            start.countDown();
+            assertThat(List.of(forward.get(15, TimeUnit.SECONDS), reverse.get(15, TimeUnit.SECONDS)))
+                    .containsExactlyInAnyOrder(CommResponseStatus.SUCCESS,
+                            CommResponseStatus.ALREADY_RREQUESTED_FRIENDSHIP);
+            var pair = friendships.findAll().stream()
+                    .filter(f -> (f.getRequester().getId().equals(first.getId())
+                            && f.getReceiver().getId().equals(second.getId()))
+                            || (f.getRequester().getId().equals(second.getId())
+                            && f.getReceiver().getId().equals(first.getId())))
+                    .toList();
+            assertThat(pair).hasSize(1);
+            assertThat(pair.getFirst().getStatus()).isEqualTo(REQUESTED);
+            assertThat(friendships.count()).isEqualTo(2);
+        } finally {
+            start.countDown();
+            executor.shutdownNow();
+            assertThat(executor.awaitTermination(15, TimeUnit.SECONDS)).as("workers terminate before cleanup").isTrue();
         }
-
-        // 11번째 요청 -> 429
-        FriendRequest lastRequest =
-                new FriendRequest(100L);
-
-        String lastBody = objectMapper.writeValueAsString(lastRequest);
-        mockMvc.perform(
-                        post(url)
-                                .header("X-USER-ID", 1L)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(lastBody)
-                )
-                .andExpect(status().isTooManyRequests());
     }
 
-    // 기능 요구 사항 3-3 : 친구 신청 동시성 제어
-    @Test
-    @Transactional
-    void requestFriend_concurrentOnlyOneRequestCreated() throws Exception {
-        // Given
-        Long userA = 1L;
-        FriendRequest friendRequestA = new FriendRequest(2L);
-        Long userB = 2L;
-        FriendRequest friendRequestB = new FriendRequest(1L);
-        // 두 작업을 동시에 실행하기 위한 준비
-        ExecutorService executorService = Executors.newFixedThreadPool(2);
-        CountDownLatch latch = new CountDownLatch(2);
-
-        // When
-        // 스레드 1: A -> B 신청
-        executorService.submit(() -> {
-            try {
-                friendRequestFacade.requestFriend(userA, friendRequestA);
-            } catch (Exception e) {
-                System.out.println("A->B 요청 실패: " + e.getMessage());
-            } finally {
-                latch.countDown();
-            }
-        });
-
-        // 스레드 2: B -> A 신청
-        executorService.submit(() -> {
-            try {
-                friendRequestFacade.requestFriend(userB, friendRequestB);
-            } catch (Exception e) {
-                System.out.println("B->A 요청 실패: " + e.getMessage());
-            } finally {
-                latch.countDown();
-            }
-        });
-
-        latch.await(); // 두 요청이 모두 끝날 때까지 대기
-
-        // Then
-        // DB에는 둘 중 어느 쪽이든 '단 하나'의 레코드만 존재해야 함
-        int result = friendshipJPARepository.checkConcurrentRequest(userA, FRIENDSHIP_STATUS.REQUESTED);
-        assertThat(result).isEqualTo(1);
+    private CommResponseStatus requestAfterStart(Users requester, Users receiver,
+                                                CountDownLatch ready, CountDownLatch start) throws InterruptedException {
+        ready.countDown();
+        if (!start.await(10, TimeUnit.SECONDS)) {
+            throw new IllegalStateException("Start signal timed out");
+        }
+        try {
+            facade.requestFriend(requester.getId(), new FriendRequest(receiver.getId()));
+            return CommResponseStatus.SUCCESS;
+        } catch (CommException exception) {
+            return exception.getStatus();
+        }
     }
 
-    // 기능 요구 사항 4 : 친구 수락 테스트 코드
-    @Test
-    @Transactional
-    @Rollback(false)
-    void requestAccept_test() throws Exception {
-        // friendShip 테이블의 request-id 값 입력
-        String requestId = "b1ea936b-7c78-4055-9015-7d72d6700c45";
-        
-        friendService.requestAccept(CURRENT_USER_ID, requestId);
-
-        Friendship ckFriendship = friendshipJPARepository.findById(UUID.fromString(requestId))
-                .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_FRIENDSHIP));
-        assertEquals(ckFriendship.getStatus(), FRIENDSHIP_STATUS.ACCEPTED, "친구 상태가 ACCEPTED가 아닙니다.");
+    private Users currentListUser() {
+        Users current = fixture.user("current");
+        // The current API fixes list queries to ID 1. RESTART IDENTITY makes that explicit and reproducible.
+        assertThat(current.getId()).isEqualTo(1L);
+        return current;
     }
 
-    // 기능 요구 사항 5 : 친구 요청 거절 테스트 코드
-    @Test
-    @Transactional
-    @Rollback(false)
-    void requestReject_test() throws Exception {
-        // friendShip 테이블의 request-id 값 입력
-        String requestId = "737d4034-5b13-43c0-9be2-50af7fc27cb3";
-        Long xUserId = CURRENT_USER_ID;
-
-        friendService.requestReject(xUserId, requestId);
-        
-        Friendship ckFriendship = friendshipJPARepository.findById(UUID.fromString(requestId))
-                .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_FRIENDSHIP));
-        assertEquals(ckFriendship.getStatus(), FRIENDSHIP_STATUS.REJECTED, "친구 상태가 REJECTE가 아닙니다.");
+    private Friendship reload(Friendship relationship) {
+        return friendships.findById(relationship.getId()).orElseThrow();
     }
 
+    private void assertFailure(Runnable action, CommResponseStatus status) {
+        assertThatThrownBy(action::run).isInstanceOfSatisfying(CommException.class,
+                exception -> assertThat(exception.getStatus()).isEqualTo(status));
+    }
 }

@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "branch": "refactor/backend-quality",
+  "sourcePlan": "BACKEND_QUALITY_REVIEW.md#20",
+  "activeScope": "setup-checkpoint",
+  "pendingDecisions": [
+    {
+      "id": "S2-001",
+      "question": "At step 2, reconcile the tentative rejected-row reuse preference with the PDF's deletion wording; decide same-direction request ID and existing-data handling before implementation.",
+      "blocksScopes": ["step-2", "full-refactor"],
+      "status": "awaiting-user-answer"
+    },
+    {
+      "id": "S2-003-ERROR",
+      "question": "At step 2, determine the public error response if the Redis-to-DB fallback cannot complete safely.",
+      "blocksScopes": ["step-2", "full-refactor"],
+      "status": "awaiting-user-answer"
+    }
+  ],
+  "resolvedDecisions": [
+    {
+      "id": "PDF-001",
+      "decision": "기능요구사항.pdf를 Git에서 제외",
+      "source": "2026-10-21 사용자 직접 답변"
+    },
+    {
+      "id": "PUB-001",
+      "decision": "현재 브랜치에 1번 단계와 실행 체계만 먼저 커밋·푸시",
+      "source": "2026-10-22 사용자 직접 답변"
+    },
+    {
+      "id": "S2-002",
+      "decision": "거절 후 B→A 신청 허용; 기존 A→B 요청을 재활용하지 않고 새 요청 생성",
+      "source": "2026-10-22 사용자 직접 답변; 구현은 2번 단계"
+    },
+    {
+      "id": "S2-003",
+      "decision": "Redis TTL 또는 장애 시 DB 제약으로 진행; 실제 제약의 충분성은 2번 단계에서 검증·보완",
+      "source": "2026-10-22 사용자 직접 답변; 구현은 2번 단계"
+    }
+  ],
+  "checkpointStatus": "validated-awaiting-exact-staged-tree-review",
+  "currentStep": 1,
+  "steps": [
+    {
+      "number": 1,
+      "status": "complete",
+      "evidence": "BACKEND_QUALITY_REVIEW.md section 21 and current lint/test/sampleDataClasses run: 17 tests, 0 failures, 0 skipped"
+    },
+    { "number": 2, "status": "pending" },
+    { "number": 3, "status": "pending" },
+    { "number": 4, "status": "pending" },
+    { "number": 5, "status": "pending" },
+    { "number": 6, "status": "pending" }
+  ],
+  "maxParallelImplementers": 2,
+  "noProgressLimit": 3,
+  "publicationAuthorized": true,
+  "publicationScope": "setup-checkpoint",
+  "publicationAttestation": "git-path:refactor-review.json",
+  "openRequiredFindings": [],
+  "reviewStatus": "pending",
+  "currentValidation": [
+    {
+      "command": ".\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache",
+      "exitCode": 0,
+      "result": "Checkstyle main, test, sampleData passed; 17 tests passed; sampleData compiled"
+    },
+    {
+      "command": "powershell -NoProfile -File scripts/test-git-hook.ps1",
+      "exitCode": 0,
+      "result": "failing lint blocked a real Git commit; passing lint allowed a commit; pending user decisions blocked publication in a disposable repository"
+    },
+    {
+      "command": "PowerShell parser; Python JSON/TOML parser; git diff --check",
+      "exitCode": 0,
+      "result": "syntax and whitespace checks passed"
+    }
+  ],
+  "notes": [
+    "This checkpoint configures the agent workflow and preserves step 1; it does not implement steps 2 through 6.",
+    "An empty findings list before review is not approval.",
+    "The user authorized publishing the step-1/setup checkpoint now; step-2 behavior remains outside this publication scope.",
+    "Final independent review must approve the exact staged tree; never store the attested tree hash inside this tracked file."
+  ]
+}

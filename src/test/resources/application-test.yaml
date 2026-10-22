@@ -1,0 +1,23 @@
+spring:
+  datasource:
+    # IntegrationTestSupport supplies all connection properties. Never fall back to a development DB.
+    url: ${test.database.url}
+    username: ${test.database.username}
+    password: ${test.database.password}
+  data:
+    redis:
+      host: ${test.redis.host}
+      port: ${test.redis.port}
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    open-in-view: false
+
+logging:
+  file:
+    path: build/test-logs
+
+limit:
+  # Keep the rate-limit scenario inside one window without sleeps or wall-clock races.
+  window-milli-seconds: 60000

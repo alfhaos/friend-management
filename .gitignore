@@ -2,6 +2,7 @@
 .idea/
 *.iml
 out/
+/기능요구사항.pdf
 
 # Gradle
 .gradle/

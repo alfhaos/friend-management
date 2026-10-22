@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id 'checkstyle'
     id 'org.springframework.boot' version '3.5.9'
     id 'io.spring.dependency-management' version '1.1.7'
 }
@@ -35,8 +36,8 @@ dependencies {
     // 테스트 코드용 Lombok
     testCompileOnly 'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'
-    // H2
-    runtimeOnly 'com.h2database:h2'
+    // PostgreSQL
+    runtimeOnly 'org.postgresql:postgresql'
 
     // redis
     implementation 'org.redisson:redisson-spring-boot-starter:3.23.5'
@@ -51,9 +52,53 @@ dependencies {
 
     // Testing
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.testcontainers:postgresql'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+    // DB/Redis cleanup is scoped to one test at a time.
+    maxParallelForks = 1
+}
+
+// Development data generation is compiled and run only when explicitly requested.
+sourceSets {
+    sampleData {
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+}
+
+configurations {
+    sampleDataImplementation.extendsFrom implementation
+    sampleDataRuntimeOnly.extendsFrom runtimeOnly
+}
+
+tasks.register('seedSampleData', JavaExec) {
+    group = 'application'
+    description = 'Insert development sample data into the configured database (explicit opt-in).'
+    classpath = sourceSets.sampleData.runtimeClasspath
+    mainClass = 'com.apr.aprbackendassignment.sampleData.SampleDataInsert'
+}
+
+checkstyle {
+    toolVersion = '10.26.1'
+    configFile = file('config/checkstyle/checkstyle.xml')
+    maxWarnings = 0
+}
+
+tasks.withType(Checkstyle).configureEach {
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+// Keep a narrow, executable baseline while the review sequence improves the model.
+// Include the opt-in generator so moving code out of test never bypasses lint.
+tasks.register('lint') {
+    group = 'verification'
+    description = 'Check Java syntax, safe logging, and source hygiene in every source set.'
+    dependsOn tasks.withType(Checkstyle)
 }
