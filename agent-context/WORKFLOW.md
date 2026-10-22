@@ -108,14 +108,23 @@ refactor_orchestrator
 }
 ```
 
-6. 다음 명령으로 게시한다. 스크립트는 tree·브랜치·승인·실제 lint/test를 다시 확인하며,
-   Git pre-commit hook도 commit 직전에 실제 lint를 실행한다.
+6. 최종 staged 변경을 기준으로 `codeConvention.md`의 타입 접두어와 한글 한 문장
+   제목을 작성한다. 빈 줄 뒤에는 실제 작업 내용을 한글 항목으로 정리한다. 다음처럼
+   여러 줄 메시지를 전달해 게시한다. 스크립트는 tree·브랜치·승인·실제 lint/test를
+   다시 확인하며, Git pre-commit hook도 commit 직전에 실제 lint를 실행한다.
 
 ```powershell
+$commitMessage = @'
+chore: 리팩토링 실행 체계와 1번 단계의 검증 기반을 정리한다
+
+- 리팩토링 단계별 역할과 독립 리뷰 절차를 문서화한다.
+- 1번 단계의 구현 상태와 검증 결과를 기록한다.
+'@
+
 powershell -NoProfile -File scripts/publish-reviewed.ps1 `
   -Scope setup-checkpoint `
   -AttestationPath .git/refactor-review.json `
-  -Message 'chore: set up reviewed refactoring workflow and preserve step 1'
+  -Message $commitMessage
 ```
 
 7. commit 성공 후에만 `origin`의 `refactor/backend-quality`로 일반 push한다. 원격 충돌은
