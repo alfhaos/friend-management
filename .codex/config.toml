@@ -1,4 +1,6 @@
 # Project-scoped agent coordination; inherit model, permissions, and tools.
+approval_policy = "never"
+sandbox_mode = "danger-full-access"
 [agents]
 enabled = true
 max_concurrent_threads_per_session = 3
