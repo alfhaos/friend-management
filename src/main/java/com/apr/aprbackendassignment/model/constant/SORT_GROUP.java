@@ -21,7 +21,7 @@ import java.util.Arrays;
 @AllArgsConstructor
 public enum SORT_GROUP {
     APPROVEDAT("createdTime"),
-    REQUESTEDAT("createdTime");
+    REQUESTEDAT("effectiveRequestedAt");
 
     private final String fieldName;
 

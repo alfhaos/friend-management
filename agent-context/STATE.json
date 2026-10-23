@@ -5,16 +5,9 @@
   "activeScope": "setup-checkpoint",
   "pendingDecisions": [
     {
-      "id": "S2-001",
-      "question": "At step 2, reconcile the tentative rejected-row reuse preference with the PDF's deletion wording; decide same-direction request ID and existing-data handling before implementation.",
-      "blocksScopes": ["step-2", "full-refactor"],
-      "status": "awaiting-user-answer"
-    },
-    {
-      "id": "S2-003-ERROR",
-      "question": "At step 2, determine the public error response if the Redis-to-DB fallback cannot complete safely.",
-      "blocksScopes": ["step-2", "full-refactor"],
-      "status": "awaiting-user-answer"
+      "id": "S2-004",
+      "question": "Redis 장애 중 로컬 요청 제한기 10,000 사용자 슬롯이 가득 찼을 때 신규 사용자 ID를 HTTP 429로 차단할지 DB 처리로 통과시킬지",
+      "impact": "2번 Redis 장애 시 요청 횟수 제한 계약·구현·테스트"
     }
   ],
   "resolvedDecisions": [
@@ -37,17 +30,47 @@
       "id": "S2-003",
       "decision": "Redis TTL 또는 장애 시 DB 제약으로 진행; 실제 제약의 충분성은 2번 단계에서 검증·보완",
       "source": "2026-10-22 사용자 직접 답변; 구현은 2번 단계"
+    },
+    {
+      "id": "S2-001",
+      "decision": "같은 방향 재신청은 해당 REJECTED 행의 상태를 변경해 기존 요청 ID로 재사용; 거절 행 일괄 삭제·이관 없이 재신청되지 않은 행은 유지",
+      "source": "2026-10-22 사용자 직접 답변 1-A, 2-A; 구현은 2번 단계"
+    },
+    {
+      "id": "S2-003-ERROR",
+      "decision": "DB 제약 충돌은 HTTP 409, DB 자체 장애는 HTTP 503으로 구분하고 별도 오류 코드 사용; 코드·메시지 문자열은 구현 승인 제안에서 확정",
+      "source": "2026-10-22 사용자 직접 답변 3-A; 구현은 2번 단계"
+    },
+    {
+      "id": "S2-005",
+      "decision": "Redis 우회 요청 별도 저장 테이블은 만들지 않음; Redis는 잠금과 요청 횟수 제한에만 사용",
+      "source": "2026-10-23 사용자 직접 정정"
+    },
+    {
+      "id": "S2-006",
+      "decision": "모든 5xx 공개 메시지를 서버에 문제가 생겼습니다. 잠시 후 다시 시도해주세요. 로 통일하고 상태·코드는 구분",
+      "source": "2026-10-22 사용자 직접 답변"
+    },
+    {
+      "id": "S2-007",
+      "decision": "거절 행의 같은 방향 재신청은 기존 ID를 유지하되 오늘 신청 시각으로 표시",
+      "source": "2026-10-22 사용자 직접 답변"
+    },
+    {
+      "id": "S2-008",
+      "decision": "제약 적용을 막는 기존 활성 중복 데이터는 자동 삭제·병합하지 않고 별도 사용자 결정을 받음",
+      "source": "2026-10-22 사용자 직접 답변"
     }
   ],
-  "checkpointStatus": "validated-awaiting-exact-staged-tree-review",
-  "currentStep": 1,
+  "checkpointStatus": "step-2-wip-transfer",
+  "currentStep": 2,
   "steps": [
     {
       "number": 1,
       "status": "complete",
       "evidence": "BACKEND_QUALITY_REVIEW.md section 21 and current lint/test/sampleDataClasses run: 17 tests, 0 failures, 0 skipped"
     },
-    { "number": 2, "status": "pending" },
+    { "number": 2, "status": "in_progress" },
     { "number": 3, "status": "pending" },
     { "number": 4, "status": "pending" },
     { "number": 5, "status": "pending" },
@@ -58,29 +81,38 @@
   "publicationAuthorized": true,
   "publicationScope": "setup-checkpoint",
   "publicationAttestation": "git-path:refactor-review.json",
-  "openRequiredFindings": [],
-  "reviewStatus": "pending",
+  "openRequiredFindings": [
+    "S2-REVIEW-01: Redis recovery resets an active local user window",
+    "S2-REVIEW-02: GET /api/friends/requests consumes application rate limit",
+    "S2-REVIEW-03: unrelated SQLSTATE 23505 maps to friend request conflict"
+  ],
+  "reviewStatus": "changes-required",
   "currentValidation": [
     {
       "command": ".\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache",
       "exitCode": 0,
-      "result": "Checkstyle main, test, sampleData passed; 17 tests passed; sampleData compiled"
+      "result": "2026-10-23 15:30 KST, before three reviewer regression tests; 9 tasks successful"
     },
     {
-      "command": "powershell -NoProfile -File scripts/test-git-hook.ps1",
-      "exitCode": 0,
-      "result": "failing lint blocked a real Git commit; passing lint allowed a commit; pending user decisions blocked publication in a disposable repository"
+      "command": ".\\gradlew.bat test --tests com.apr.aprbackendassignment.util.RedisRateLimiterFallbackTest --tests com.apr.aprbackendassignment.controller.FriendFailureApiTest --tests com.apr.aprbackendassignment.controller.FriendRequestRedisOutageApiTest --rerun-tasks --no-build-cache",
+      "exitCode": 1,
+      "result": "2026-10-23 15:34 KST; 13 tests, 3 known reviewer findings reproduced"
     },
     {
-      "command": "PowerShell parser; Python JSON/TOML parser; git diff --check",
+      "command": ".\\gradlew.bat test --tests com.apr.aprbackendassignment.repository.FriendshipConstraintTest --rerun-tasks --no-build-cache",
       "exitCode": 0,
-      "result": "syntax and whitespace checks passed"
+      "result": "2026-10-23 15:40 KST; test database index checks passed"
+    },
+    {
+      "command": ".\\gradlew.bat lint --rerun-tasks",
+      "exitCode": 0,
+      "result": "2026-10-23; latest test sources pass Checkstyle"
     }
   ],
   "notes": [
-    "This checkpoint configures the agent workflow and preserves step 1; it does not implement steps 2 through 6.",
-    "An empty findings list before review is not approval.",
-    "The user authorized publishing the step-1/setup checkpoint now; step-2 behavior remains outside this publication scope.",
+    "This WIP checkpoint transfers in-progress step 2; it does not mark step 2 complete.",
+    "Three reviewer findings have failing regression tests; see docs/step2-handoff.md.",
+    "The user requested a WIP Git transfer for work on another computer; no completed-step publication attestation is claimed.",
     "Final independent review must approve the exact staged tree; never store the attested tree hash inside this tracked file."
   ]
 }

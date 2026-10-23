@@ -11,6 +11,7 @@ import com.apr.aprbackendassignment.model.dto.response.FriendsResponse;
 import com.apr.aprbackendassignment.model.entity.Friendship;
 import com.apr.aprbackendassignment.model.entity.Users;
 import com.apr.aprbackendassignment.service.FriendService;
+import com.apr.aprbackendassignment.support.ConcurrentResults;
 import com.apr.aprbackendassignment.support.IntegrationTestSupport;
 import com.apr.aprbackendassignment.util.FriendRequestFacade;
 import org.junit.jupiter.api.Test;
@@ -146,6 +147,74 @@ class FriendServiceImplTest extends IntegrationTestSupport {
     }
 
     @Test
+    void reusesRejectedRequestOnlyForTheSameDirection() {
+        Users requester = fixture.user("requester");
+        Users receiver = fixture.user("receiver");
+        Users unrelated = fixture.user("unrelated");
+        Friendship rejected = fixture.relationship(requester, receiver, REJECTED);
+        Friendship untouched = fixture.relationship(requester, unrelated, REJECTED);
+
+        facade.requestFriend(requester.getId(), new FriendRequest(receiver.getId()));
+
+        Friendship reused = friendships.findByRequesterIdAndReceiverId(requester.getId(), receiver.getId());
+        assertThat(reused.getId()).isEqualTo(rejected.getId());
+        assertThat(reused.getStatus()).isEqualTo(REQUESTED);
+        assertThat(reused.getRequester().getId()).isEqualTo(requester.getId());
+        assertThat(reused.getReceiver().getId()).isEqualTo(receiver.getId());
+        assertThat(reload(untouched).getStatus()).isEqualTo(REJECTED);
+        assertThat(friendships.count()).isEqualTo(2);
+    }
+
+    @Test
+    void reusedRejectedRequestAppearsInTodaysIncomingRequests() {
+        Users receiver = currentListUser();
+        Users requester = fixture.user("requester");
+        Users earlierRequester = fixture.user("earlier");
+        Friendship rejected = fixture.relationshipAt(requester, receiver, REJECTED,
+                LocalDateTime.now().minusDays(3));
+        Friendship earlierToday = fixture.relationshipAt(earlierRequester, receiver, REQUESTED,
+                LocalDateTime.now().toLocalDate().atStartOfDay());
+
+        facade.requestFriend(requester.getId(), new FriendRequest(receiver.getId()));
+
+        Friendship reused = friendships.findByRequesterIdAndReceiverId(requester.getId(), receiver.getId());
+        assertThat(reused.getId()).isEqualTo(rejected.getId());
+        assertThat(reused.getStatus()).isEqualTo(REQUESTED);
+        var today = friendService.getReceiveFriendsList(
+                new PageRequestParam(0, 30, "requestedAt,desc").toPageable(), WINDOW_SLIDING.DAY);
+        assertThat(today.getTotalCount()).isEqualTo(2);
+        assertThat(today.getItems()).extracting(FriendsRequestsResponse::getRequestId)
+                .containsExactly(rejected.getId().toString(), earlierToday.getId().toString());
+        assertThat(today.getItems()).extracting(FriendsRequestsResponse::getRequestUserId)
+                .containsExactly(requester.getId(), earlierRequester.getId());
+        assertThat(today.getItems().getFirst().getRequestedAt().toLocalDate())
+                .isEqualTo(LocalDateTime.now().toLocalDate());
+        assertThat(today.getItems().getFirst().getRequestedAt())
+                .isAfter(today.getItems().get(1).getRequestedAt());
+    }
+
+    @Test
+    void createsNewReverseRequestWhilePreservingRejectedHistory() {
+        Users first = fixture.user("first");
+        Users second = fixture.user("second");
+        Friendship rejected = fixture.relationship(first, second, REJECTED);
+
+        facade.requestFriend(second.getId(), new FriendRequest(first.getId()));
+
+        Friendship reverse = friendships.findByRequesterIdAndReceiverId(second.getId(), first.getId());
+        assertThat(reverse.getId()).isNotEqualTo(rejected.getId());
+        assertThat(reverse.getStatus()).isEqualTo(REQUESTED);
+        assertThat(reverse.getRequester().getId()).isEqualTo(second.getId());
+        assertThat(reverse.getReceiver().getId()).isEqualTo(first.getId());
+        assertThat(reload(rejected).getStatus()).isEqualTo(REJECTED);
+        assertThat(friendships.count()).isEqualTo(2);
+
+        assertFailure(() -> facade.requestFriend(second.getId(), new FriendRequest(first.getId())),
+                CommResponseStatus.ALREADY_RREQUESTED_FRIENDSHIP);
+        assertThat(friendships.count()).isEqualTo(2);
+    }
+
+    @Test
     void acceptsPendingRequestForBothUsers() {
         Users requester = fixture.user("requester");
         Users receiver = fixture.user("receiver");
@@ -207,7 +276,7 @@ class FriendServiceImplTest extends IntegrationTestSupport {
             var reverse = executor.submit(() -> requestAfterStart(second, first, ready, start));
             assertThat(ready.await(10, TimeUnit.SECONDS)).as("workers are ready").isTrue();
             start.countDown();
-            assertThat(List.of(forward.get(15, TimeUnit.SECONDS), reverse.get(15, TimeUnit.SECONDS)))
+            assertThat(ConcurrentResults.collect(List.of(forward, reverse), 15))
                     .containsExactlyInAnyOrder(CommResponseStatus.SUCCESS,
                             CommResponseStatus.ALREADY_RREQUESTED_FRIENDSHIP);
             var pair = friendships.findAll().stream()

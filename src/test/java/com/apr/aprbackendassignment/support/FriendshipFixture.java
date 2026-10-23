@@ -32,8 +32,8 @@ public final class FriendshipFixture {
     public Friendship relationshipAt(Users requester, Users receiver, FRIENDSHIP_STATUS status, LocalDateTime time) {
         Friendship friendship = relationship(requester, receiver, status);
         // Historical fixtures must bypass JPA auditing without adding test-only entity setters.
-        jdbc.update("UPDATE friendship SET created_time = ?, updated_time = ? WHERE id = ?",
-                time, time, friendship.getId());
+        jdbc.update("UPDATE friendship SET created_time = ?, updated_time = ?, requested_at = ? WHERE id = ?",
+                time, time, time, friendship.getId());
         return friendship;
     }
 }

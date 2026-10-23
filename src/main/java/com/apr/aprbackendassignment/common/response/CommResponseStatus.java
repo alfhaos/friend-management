@@ -36,12 +36,18 @@ public enum CommResponseStatus {
     ALREADY_RREQUESTED_FRIENDSHIP(HttpStatus.BAD_REQUEST, "ALREADY_RREQUESTED_FRIENDSHIP", "이미 요청이 존재합니다."),
     ONLY_RECEIVER_CAN_PROCESS(HttpStatus.FORBIDDEN, "ONLY_RECEIVER_CAN_PROCESS", "해당 요청은 수신자만 처리할 수 있습니다."),
     CONCURRENT_FRIEND_REQUEST(HttpStatus.LOCKED, "CONCURRENT_FRIEND_REQUEST", "이미 처리 중인 친구 요청이 있습니다. 잠시 후 다시 시도해주세요."),
+    FRIEND_REQUEST_CONFLICT(HttpStatus.CONFLICT, "FRIEND_REQUEST_CONFLICT", "동일한 사용자 간 활성 친구 요청이 이미 존재합니다."),
 
     // 5xx Server Error
-    INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", "처리 중 서버에서 에러가 발생했습니다."),
-    LOCK_INTERRUPTED(HttpStatus.INTERNAL_SERVER_ERROR, "LOCK_INTERRUPTED", "요청 처리 중 인터럽트가 발생했습니다. 다시 시도해주세요.");
+    INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", serverErrorMessage()),
+    DATABASE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "DATABASE_UNAVAILABLE", serverErrorMessage()),
+    LOCK_INTERRUPTED(HttpStatus.INTERNAL_SERVER_ERROR, "LOCK_INTERRUPTED", serverErrorMessage());
 
     private final HttpStatus httpStatus;
     private final String code;
     private final String message;
+
+    private static String serverErrorMessage() {
+        return "서버에 문제가 생겼습니다. 잠시 후 다시 시도해주세요.";
+    }
 }

@@ -18,9 +18,13 @@ spring:
   # ================== JPA 설정 ==================
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
+    defer-datasource-initialization: true
     hibernate:
       ddl-auto: update
     show-sql: true
+  sql:
+    init:
+      mode: always
 # ================== LOG 설정 ==================
 logging:
   level:

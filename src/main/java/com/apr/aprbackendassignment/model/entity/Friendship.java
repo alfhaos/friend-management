@@ -4,6 +4,7 @@ import com.apr.aprbackendassignment.common.entity.CommTimeEntity;
 import com.apr.aprbackendassignment.model.constant.FRIENDSHIP_STATUS;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.Formula;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -31,20 +32,28 @@ public class Friendship extends CommTimeEntity {
     private UUID id = UUID.randomUUID();
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "requester_id")
+    @JoinColumn(name = "requester_id", nullable = false)
     private Users requester;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "receiver_id")
+    @JoinColumn(name = "receiver_id", nullable = false)
     private Users receiver;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private FRIENDSHIP_STATUS status;
+
+    @Column(name = "requested_at")
+    private LocalDateTime requestedAt;
+
+    @Formula("coalesce(requested_at, created_time)")
+    private LocalDateTime effectiveRequestedAt;
 
     public Friendship(Users requester, Users receiver, FRIENDSHIP_STATUS status) {
         this.requester = requester;
         this.receiver = receiver;
         this.status = status;
+        this.requestedAt = LocalDateTime.now();
     }
 
     public static Friendship create(Users requester, Users receiver, FRIENDSHIP_STATUS status) {
@@ -53,6 +62,9 @@ public class Friendship extends CommTimeEntity {
 
     public void updateUpdateAt(LocalDateTime time) {
         this.updatedTime = time;
+    }
+    public void updateRequestedAt(LocalDateTime time) {
+        this.requestedAt = time;
     }
     public void updateStatus(FRIENDSHIP_STATUS status) {
         this.status = status;

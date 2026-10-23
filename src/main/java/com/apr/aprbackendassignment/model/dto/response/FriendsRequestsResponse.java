@@ -34,7 +34,7 @@ public class FriendsRequestsResponse {
             return FriendsRequestsResponse.builder()
                     .requestId(String.valueOf(f.getId()))
                     .requestUserId(f.getRequester().getId())
-                    .requestedAt(f.getCreatedTime())
+                    .requestedAt(f.getEffectiveRequestedAt())
                     .build();
         });
     }

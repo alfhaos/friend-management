@@ -1,0 +1,71 @@
+package com.apr.aprbackendassignment.service.impl;
+
+import com.apr.aprbackendassignment.common.exception.CommException;
+import com.apr.aprbackendassignment.model.dto.request.FriendRequest;
+import com.apr.aprbackendassignment.model.entity.Users;
+import com.apr.aprbackendassignment.support.ConcurrentResults;
+import com.apr.aprbackendassignment.support.IntegrationTestSupport;
+import com.apr.aprbackendassignment.util.FriendRequestFacade;
+import com.apr.aprbackendassignment.util.RedisLockUtil;
+import org.junit.jupiter.api.Test;
+import org.redisson.client.RedisException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
+import static com.apr.aprbackendassignment.model.constant.FRIENDSHIP_STATUS.REQUESTED;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.when;
+
+class FriendRequestRedisFallbackTest extends IntegrationTestSupport {
+
+    @Autowired
+    private FriendRequestFacade facade;
+
+    @MockitoBean
+    private RedisLockUtil redisLockUtil;
+
+    @Test
+    void redisFailureStillLeavesExactlyOneActiveRequestForOppositeConcurrentCalls() throws Exception {
+        Users first = fixture.user("first");
+        Users second = fixture.user("second");
+        when(redisLockUtil.getLock(anyLong(), anyLong()))
+                .thenThrow(new RedisException("simulated Redis connection failure"));
+        var executor = Executors.newFixedThreadPool(2);
+        var ready = new CountDownLatch(2);
+        var start = new CountDownLatch(1);
+        try {
+            var forward = executor.submit(() -> requestAfterStart(first, second, ready, start));
+            var reverse = executor.submit(() -> requestAfterStart(second, first, ready, start));
+            assertThat(ready.await(10, TimeUnit.SECONDS)).as("both workers ready").isTrue();
+            start.countDown();
+            List<String> results = ConcurrentResults.collect(List.of(forward, reverse), 15);
+            assertThat(results).containsExactlyInAnyOrder("SUCCESS", "ALREADY_RREQUESTED_FRIENDSHIP");
+            assertThat(friendships.findAll()).hasSize(1);
+            assertThat(friendships.findAll().getFirst().getStatus()).isEqualTo(REQUESTED);
+        } finally {
+            start.countDown();
+            executor.shutdownNow();
+            assertThat(executor.awaitTermination(15, TimeUnit.SECONDS)).as("workers terminated").isTrue();
+        }
+    }
+
+    private String requestAfterStart(Users requester, Users receiver,
+                                     CountDownLatch ready, CountDownLatch start) throws InterruptedException {
+        ready.countDown();
+        if (!start.await(10, TimeUnit.SECONDS)) {
+            throw new IllegalStateException("Start signal timed out");
+        }
+        try {
+            facade.requestFriend(requester.getId(), new FriendRequest(receiver.getId()));
+            return "SUCCESS";
+        } catch (CommException exception) {
+            return exception.getStatus().getCode();
+        }
+    }
+}

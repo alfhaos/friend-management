@@ -1,9 +1,11 @@
 package com.apr.aprbackendassignment.repository;
 
-import com.apr.aprbackendassignment.common.exception.CommException;
-import com.apr.aprbackendassignment.common.response.CommResponseStatus;
 import com.apr.aprbackendassignment.model.entity.Users;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+
+import java.util.Optional;
 /**
  * =====================================================
  * Class Name   : UsersJPARepository
@@ -15,7 +17,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * =====================================================
  */
 public interface UsersJPARepository extends JpaRepository<Users, Long> {
-    default Users findByIdOrThrow(Long currentUserId) {
-        return  findById(currentUserId).orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_USER));
-    };
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<Users> findLockedById(Long id);
 }

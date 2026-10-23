@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -38,7 +39,8 @@ public interface FriendshipJPARepository extends JpaRepository<Friendship, UUID>
     SELECT f
     FROM Friendship f
     WHERE f.receiver.id = :userId
-      AND f.createdTime >= :start AND f.createdTime < :end
+      AND COALESCE(f.requestedAt, f.createdTime) >= :start
+      AND COALESCE(f.requestedAt, f.createdTime) < :end
       AND f.status = 'REQUESTED'
     """)
     Page<Friendship> getFriendsReceiveListInWindow(
@@ -69,23 +71,23 @@ public interface FriendshipJPARepository extends JpaRepository<Friendship, UUID>
     @Query("""
     SELECT f
     FROM Friendship f
-    WHERE ((f.requester.id = :requesterId AND f.receiver.id = :targetUserId) 
-       OR (f.requester.id = :targetUserId AND f.receiver.id = :requesterId))
+    WHERE (f.requester.id = :firstUserId AND f.receiver.id = :secondUserId)
+       OR (f.requester.id = :secondUserId AND f.receiver.id = :firstUserId)
     """)
-    Friendship checkExistingRequest(
-            @Param("requesterId") Long requesterId
-            ,@Param("targetUserId") Long targetUserId);
+    List<Friendship> findBetweenUsers(@Param("firstUserId") Long firstUserId,
+                                      @Param("secondUserId") Long secondUserId);
+
     @Query("""
-    SELECT COUNT(f)
+    SELECT f.requester.id AS requesterId, f.receiver.id AS receiverId
     FROM Friendship f
-    WHERE (f.requester.id = :userId OR f.receiver.id = :userId)
-       AND f.status = :status
+    WHERE f.id = :requestId
     """)
-    int checkConcurrentRequest(
-            @Param("userId") Long userId,
-            @Param("status") FRIENDSHIP_STATUS status);
+    Optional<ParticipantIds> findParticipantIds(@Param("requestId") UUID requestId);
 
-    Friendship findByRequesterIdAndReceiverId(Long id, Long targetUserId);
+    Friendship findByRequesterIdAndReceiverId(Long requesterId, Long receiverId);
 
-    List<Friendship> findByReceiverIdAndStatus(Long id, FRIENDSHIP_STATUS friendshipStatus);
+    interface ParticipantIds {
+        Long getRequesterId();
+        Long getReceiverId();
+    }
 }

@@ -14,7 +14,6 @@ import com.apr.aprbackendassignment.repository.FriendshipJPARepository;
 import com.apr.aprbackendassignment.repository.UsersJPARepository;
 import com.apr.aprbackendassignment.service.FriendService;
 import com.apr.aprbackendassignment.util.LimitProperties;
-import com.apr.aprbackendassignment.util.RedisLockUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -42,7 +42,6 @@ public class FriendServiceImpl implements FriendService {
     private final FriendshipJPARepository friendshipJPARepository;
     private final UsersJPARepository usersJPARepository;
     private final LimitProperties limitProperties;
-    private final RedisLockUtil redisLockUtil;
     // 목록 조회 기능 - 현재 고정된 사용자 ID (예: 1L) 사용
     private static final Long CURRENT_USER_ID = 1L;
     @Transactional(readOnly = true)
@@ -80,74 +79,56 @@ public class FriendServiceImpl implements FriendService {
     @Transactional
     @Override
     public void requestFriend(Long xUserId, FriendRequest friendRequest) {
-        // 자기자신에게 친구 요청 보낼 경우 예외 처리
-        if(xUserId.equals(friendRequest.getTargetUserId())) {
+        Long targetUserId = friendRequest.getTargetUserId();
+        if (xUserId.equals(targetUserId)) {
             throw new CommException(CommResponseStatus.SELF_FRIEND_REQUEST);
         }
 
-        Users currentUser = getUserOrThrow(xUserId);
+        Users[] lockedUsers = lockUsers(xUserId, targetUserId);
+        Users currentUser = xUserId.equals(lockedUsers[0].getId()) ? lockedUsers[0] : lockedUsers[1];
+        Users targetUser = targetUserId.equals(lockedUsers[0].getId()) ? lockedUsers[0] : lockedUsers[1];
+        List<Friendship> relationships = friendshipJPARepository.findBetweenUsers(xUserId, targetUserId);
 
-        Users targetUser = getUserOrThrow(friendRequest.getTargetUserId());
-
-        // 이미 받은 요청이 있는지 확인
-        Friendship existingRequest = friendshipJPARepository.checkExistingRequest(currentUser.getId(),friendRequest.getTargetUserId());
-        if (existingRequest != null) {
-            throw new CommException(CommResponseStatus.ALREADY_RREQUESTED_FRIENDSHIP);
-        }
-        // 자기자신에게 친구 요청 보낼 경우 예외 처리
-        if(currentUser.getId().equals(targetUser.getId())) {
-            throw new CommException(CommResponseStatus.SELF_FRIEND_REQUEST);
-        }
-        // 거절시 재요청 가능 요구사항
-        Friendship friendship = friendshipJPARepository.findByRequesterIdAndReceiverId(currentUser.getId(), targetUser.getId());
-
-        if(existingRequest == null) {
-            Friendship friendShip =
-                    Friendship.create(
-                            currentUser,
-                            targetUser,
-                            FRIENDSHIP_STATUS.REQUESTED
-                    );
-            friendshipJPARepository.save(friendShip);
-            return;
+        for (Friendship relationship : relationships) {
+            if (relationship.getStatus() == FRIENDSHIP_STATUS.REQUESTED) {
+                throw new CommException(CommResponseStatus.ALREADY_RREQUESTED_FRIENDSHIP);
+            }
+            if (relationship.getStatus() == FRIENDSHIP_STATUS.ACCEPTED) {
+                throw new CommException(CommResponseStatus.ALREADY_REQUESTED_FRIEND);
+            }
         }
 
-        if (existingRequest.getStatus().equals(FRIENDSHIP_STATUS.REQUESTED)) {
-            throw new CommException(CommResponseStatus.ALREADY_RREQUESTED_FRIENDSHIP);
+        for (Friendship relationship : relationships) {
+            if (relationship.getRequester().getId().equals(xUserId)
+                    && relationship.getStatus() == FRIENDSHIP_STATUS.REJECTED) {
+                LocalDateTime requestedAt = LocalDateTime.now();
+                relationship.updateUpdateAt(requestedAt);
+                relationship.updateRequestedAt(requestedAt);
+                relationship.updateStatus(FRIENDSHIP_STATUS.REQUESTED);
+                return;
+            }
         }
 
-        if(existingRequest.getStatus().equals(FRIENDSHIP_STATUS.ACCEPTED)) {
-            throw new CommException(CommResponseStatus.ALREADY_REQUESTED_FRIEND);
-        }
-
-        // 거절시 재요청 가능 요구사항
-        // 만약 거절 이력이 있을경우 해당 데이터 상태를 REQUESTED로 변경
-        if(existingRequest.getStatus().equals(FRIENDSHIP_STATUS.REJECTED)) {
-                existingRequest.updateRequester(currentUser);   // B→A 재요청이면 requester를 B로 변경
-                existingRequest.updateReceiver(targetUser);     // receiver를 A로 변경
-                existingRequest.updateUpdateAt(LocalDateTime.now());
-                existingRequest.updateStatus(FRIENDSHIP_STATUS.REQUESTED);
-        }
-
+        friendshipJPARepository.save(Friendship.create(currentUser, targetUser, FRIENDSHIP_STATUS.REQUESTED));
     }
 
     @Transactional
     @Override
     public void requestAccept(Long xUserId, String requestId) {
-        Users currentUser = getUserOrThrow(xUserId);
-
-        Friendship friendship = friendshipJPARepository.findById(UUID.fromString(requestId))
-                .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_FRIENDSHIP));
+        Friendship friendship = findLockedRequest(xUserId, UUID.fromString(requestId));
 
         // 수신자가 아닌 경우 예외 처리
-        if(!friendship.getReceiver().getId().equals(currentUser.getId())) {
+        if (!friendship.getReceiver().getId().equals(xUserId)) {
             throw new CommException(CommResponseStatus.ONLY_RECEIVER_CAN_PROCESS);
         }
 
-        Users targetUser = getUserOrThrow(friendship.getRequester().getId());
-        Long targetUserId = targetUser.getId();
+        if (friendship.getStatus() != FRIENDSHIP_STATUS.REQUESTED) {
+            throw new CommException(CommResponseStatus.REQUEST_STATUS_ERROR);
+        }
 
-        int currentUserFriendCnt = friendshipJPARepository.countUsersFriends(currentUser.getId(), FRIENDSHIP_STATUS.ACCEPTED);
+        Long targetUserId = friendship.getRequester().getId();
+
+        int currentUserFriendCnt = friendshipJPARepository.countUsersFriends(xUserId, FRIENDSHIP_STATUS.ACCEPTED);
 
         // 현재 로그인 유저의 친구 수 체크
         if(currentUserFriendCnt >= limitProperties.getMaxFriend()) {
@@ -159,23 +140,16 @@ public class FriendServiceImpl implements FriendService {
         if(targetUserFriendCnt >= limitProperties.getMaxFriend()) {
             throw new CommException(CommResponseStatus.FRIEND_LIMIT_EXCEEDED_REQUESTER);
         }
-        // 요청 상태가 REQUEST가 아닐 경우 예외 처리
-        if(!friendship.getStatus().equals(FRIENDSHIP_STATUS.REQUESTED)) {
-            throw new CommException(CommResponseStatus.REQUEST_STATUS_ERROR);
-        }
-
         friendship.updateStatus(FRIENDSHIP_STATUS.ACCEPTED);
     }
 
     @Transactional
     @Override
     public void requestReject(Long xUserId, String requestId) {
-        Users currentUser = getUserOrThrow(xUserId);
-        Friendship friendship = friendshipJPARepository.findById(UUID.fromString(requestId))
-                .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_FRIENDSHIP));
+        Friendship friendship = findLockedRequest(xUserId, UUID.fromString(requestId));
 
         // 수신자가 아닌 경우 예외 처리
-        if(!friendship.getReceiver().getId().equals(currentUser.getId())) {
+        if (!friendship.getReceiver().getId().equals(xUserId)) {
             throw new CommException(CommResponseStatus.ONLY_RECEIVER_CAN_PROCESS);
         }
         // 요청 상태가 REQUEST가 아닐 경우 예외 처리
@@ -190,5 +164,27 @@ public class FriendServiceImpl implements FriendService {
     private Users getUserOrThrow(Long userId) {
         return usersJPARepository.findById(userId)
                 .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_USER));
+    }
+
+    private Friendship findLockedRequest(Long currentUserId, UUID requestId) {
+        getUserOrThrow(currentUserId);
+        FriendshipJPARepository.ParticipantIds participants = friendshipJPARepository.findParticipantIds(requestId)
+                .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_FRIENDSHIP));
+        if (!participants.getReceiverId().equals(currentUserId)) {
+            throw new CommException(CommResponseStatus.ONLY_RECEIVER_CAN_PROCESS);
+        }
+        lockUsers(participants.getRequesterId(), participants.getReceiverId());
+        return friendshipJPARepository.findById(requestId)
+                .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_FRIENDSHIP));
+    }
+
+    private Users[] lockUsers(Long firstUserId, Long secondUserId) {
+        Long lowerId = Math.min(firstUserId, secondUserId);
+        Long upperId = Math.max(firstUserId, secondUserId);
+        Users lower = usersJPARepository.findLockedById(lowerId)
+                .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_USER));
+        Users upper = usersJPARepository.findLockedById(upperId)
+                .orElseThrow(() -> new CommException(CommResponseStatus.NOT_FOUND_USER));
+        return new Users[] {lower, upper};
     }
 }
