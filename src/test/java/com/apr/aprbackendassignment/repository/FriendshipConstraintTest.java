@@ -45,6 +45,19 @@ class FriendshipConstraintTest extends IntegrationTestSupport {
     }
 
     @Test
+    void databaseRejectsSameDirectionDuplicateRequest() {
+        Users requester = fixture.user("requester");
+        Users receiver = fixture.user("receiver");
+        insertRelationship(requester, receiver, "REQUESTED");
+
+        assertThatThrownBy(() -> insertRelationship(requester, receiver, "REQUESTED"))
+                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThat(friendships.count()).isEqualTo(1);
+        assertThat(friendships.findByRequesterIdAndReceiverId(requester.getId(), receiver.getId()).getStatus())
+                .isEqualTo(REQUESTED);
+    }
+
+    @Test
     void databaseAllowsReverseRequestBesideRejectedHistory() {
         Users first = fixture.user("first");
         Users second = fixture.user("second");

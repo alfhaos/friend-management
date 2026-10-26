@@ -2,15 +2,24 @@
   "schemaVersion": 1,
   "branch": "refactor/backend-quality",
   "sourcePlan": "BACKEND_QUALITY_REVIEW.md#20",
-  "activeScope": "setup-checkpoint",
-  "pendingDecisions": [
+  "activeScope": "step-2-checkpoint",
+  "pendingDecisions": [],
+  "resolvedDecisions": [
+    {
+      "id": "S2-REVIEW-04-APPROVAL",
+      "decision": "LimitInterceptor.java에서 Spring MVC가 매핑한 신청 POST 경로 기준으로 요청 제한을 적용해 세미콜론 경로 별칭 우회를 수정",
+      "source": "2026-10-26 사용자 직접 답변: 진행해"
+    },
     {
       "id": "S2-004",
-      "question": "Redis 장애 중 로컬 요청 제한기 10,000 사용자 슬롯이 가득 찼을 때 신규 사용자 ID를 HTTP 429로 차단할지 DB 처리로 통과시킬지",
-      "impact": "2번 Redis 장애 시 요청 횟수 제한 계약·구현·테스트"
-    }
-  ],
-  "resolvedDecisions": [
+      "decision": "Redis 정상 시 Redis 제한기, 장애 시 기존 사용자 ID별 JVM 메모리 제한기 사용; HttpSession 미도입; 만료 기록 정리 후 10,000 슬롯 포화 시 신규 ID HTTP 429, 기존 ID 창 유지; DB 유니크 제약은 별도 관계 중복 방어",
+      "source": "2026-10-25 사용자 직접 답변: 너가 말한 방식으로 가자; 구현·검증은 2번 단계 진행 중"
+    },
+    {
+      "id": "PUB-002",
+      "decision": "범위 밖 미커밋 transferPoint 추가 코드와 빈 미추적 package-lock.json을 제거하고 현재 브랜치 버전으로 맞춤",
+      "source": "2026-10-25 사용자 직접 지시; 제거 후 주 작업 트리 compileJava 통과"
+    },
     {
       "id": "PDF-001",
       "decision": "기능요구사항.pdf를 Git에서 제외",
@@ -62,7 +71,7 @@
       "source": "2026-10-22 사용자 직접 답변"
     }
   ],
-  "checkpointStatus": "step-2-wip-transfer",
+  "checkpointStatus": "step-2-validation-complete",
   "currentStep": 2,
   "steps": [
     {
@@ -70,7 +79,7 @@
       "status": "complete",
       "evidence": "BACKEND_QUALITY_REVIEW.md section 21 and current lint/test/sampleDataClasses run: 17 tests, 0 failures, 0 skipped"
     },
-    { "number": 2, "status": "in_progress" },
+    { "number": 2, "status": "complete", "evidence": "2026-10-26 main worktree lint test sampleDataClasses exit 0; 54 tests, 0 failures, 0 skipped; final staged-tree attestation required for publication" },
     { "number": 3, "status": "pending" },
     { "number": 4, "status": "pending" },
     { "number": 5, "status": "pending" },
@@ -79,14 +88,10 @@
   "maxParallelImplementers": 2,
   "noProgressLimit": 3,
   "publicationAuthorized": true,
-  "publicationScope": "setup-checkpoint",
+  "publicationScope": "step-2-checkpoint",
   "publicationAttestation": "git-path:refactor-review.json",
-  "openRequiredFindings": [
-    "S2-REVIEW-01: Redis recovery resets an active local user window",
-    "S2-REVIEW-02: GET /api/friends/requests consumes application rate limit",
-    "S2-REVIEW-03: unrelated SQLSTATE 23505 maps to friend request conflict"
-  ],
-  "reviewStatus": "changes-required",
+  "openRequiredFindings": [],
+  "reviewStatus": "awaiting-final-staged-tree-review",
   "currentValidation": [
     {
       "command": ".\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache",
@@ -107,12 +112,77 @@
       "command": ".\\gradlew.bat lint --rerun-tasks",
       "exitCode": 0,
       "result": "2026-10-23; latest test sources pass Checkstyle"
+    },
+    {
+      "command": ".\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache",
+      "exitCode": 0,
+      "result": "2026-10-25; isolated validation worktree code/test tree 7adf6a4f97abb2f83d256074f22619a397b765ba; 50 tests, 0 failures, 0 skipped; not final main worktree or staged-tree approval"
+    },
+    {
+      "command": ".\\gradlew.bat compileJava --rerun-tasks --no-build-cache",
+      "exitCode": 1,
+      "result": "2026-10-25; main worktree fails with 9 Java syntax errors in pre-existing unrelated FriendRequestFacade.java transferPoint addition; PUB-002 decision pending"
+    },
+    {
+      "command": ".\\gradlew.bat compileJava --rerun-tasks --no-build-cache",
+      "exitCode": 0,
+      "result": "2026-10-25; main worktree after PUB-002 cleanup, compileJava successful"
+    },
+    {
+      "command": ".\\gradlew.bat lint --rerun-tasks",
+      "exitCode": 0,
+      "result": "2026-10-25; main worktree after PUB-002 cleanup, 8 tasks executed successfully"
+    },
+    {
+      "command": ".\\gradlew.bat lint --rerun-tasks",
+      "exitCode": 0,
+      "result": "2026-10-25; main worktree after same-direction database uniqueness regression test addition, 8 tasks executed successfully; integration test still requires Docker"
+    },
+    {
+      "command": ".\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache",
+      "exitCode": 1,
+      "result": "2026-10-25; main unstaged worktree before two additional local-expiry unit tests; Docker daemon unavailable caused 47 Testcontainers initialization failures among 51 discovered tests, 4 passed; not a current-tree full-test result"
+    },
+    {
+      "command": ".\\gradlew.bat test --tests com.apr.aprbackendassignment.util.RedisRateLimiterFallbackTest --rerun-tasks --no-build-cache",
+      "exitCode": 0,
+      "result": "2026-10-25; main unstaged worktree after S2-004 overflow and expiry tests; JUnit XML 6 tests, 0 failures, 0 skipped; exact final staged tree not yet available"
+    },
+    {
+      "command": ".\\gradlew.bat lint --rerun-tasks",
+      "exitCode": 0,
+      "result": "2026-10-25; main unstaged worktree after S2-004 overflow and earliest-expiry fix; 8 tasks successful; exact final staged tree not yet available"
+    },
+    {
+      "command": ".\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache",
+      "exitCode": 0,
+      "result": "2026-10-26; main worktree before semicolon path alias regression test; 53 tests, 0 failures, 0 skipped; not final staged tree"
+    },
+    {
+      "command": ".\\gradlew.bat test --tests com.apr.aprbackendassignment.controller.FriendRequestRedisOutageApiTest.semicolonPathAliasStillConsumesApplicationRateLimit --rerun-tasks --no-build-cache",
+      "exitCode": 1,
+      "result": "2026-10-26; new regression test shows third POST /api/friends/request;x=1 returns 200 instead of required 429; production fix approval pending"
+    },
+    {
+      "command": ".\\gradlew.bat test --tests com.apr.aprbackendassignment.controller.FriendRequestRedisOutageApiTest --rerun-tasks --no-build-cache",
+      "exitCode": 1,
+      "result": "2026-10-26; production path fix passed alias regression but new test shared fallback state with existing test; fixture isolation required"
+    },
+    {
+      "command": ".\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache",
+      "exitCode": 1,
+      "result": "2026-10-26; test-only DirtiesContext isolation dropped tables in shared test PostgreSQL; 54 tests, 6 failures; isolation method replaced"
+    },
+    {
+      "command": ".\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache",
+      "exitCode": 0,
+      "result": "2026-10-26; main worktree after approved path fix and test state isolation; 54 tests, 0 failures, 0 skipped; final staged-tree validation and review pending"
     }
   ],
   "notes": [
-    "This WIP checkpoint transfers in-progress step 2; it does not mark step 2 complete.",
-    "Three reviewer findings have failing regression tests; see docs/step2-handoff.md.",
-    "The user requested a WIP Git transfer for work on another computer; no completed-step publication attestation is claimed.",
+    "Step 2 implementation and full worktree verification are complete; final exact staged-tree independent review and publication gate remain.",
+    "Prior WIP transfer is historical and did not itself complete step 2.",
+    "Steps 3 through 6 remain pending.",
     "Final independent review must approve the exact staged tree; never store the attested tree hash inside this tracked file."
   ]
 }

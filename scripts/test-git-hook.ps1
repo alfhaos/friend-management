@@ -54,8 +54,9 @@ try {
         reviewedAt = [DateTimeOffset]::UtcNow.ToString('o')
         completedSteps = @(1)
         findings = @()
-    } | ConvertTo-Json -Depth 5
-    [System.IO.File]::WriteAllText((Join-Path $fixtureRoot '.git/review.json'), $attestation)
+    }
+    [System.IO.File]::WriteAllText((Join-Path $fixtureRoot '.git/review.json'),
+            ($attestation | ConvertTo-Json -Depth 5))
     $savedErrorAction = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     try {
@@ -66,10 +67,36 @@ try {
     finally {
         $ErrorActionPreference = $savedErrorAction
     }
-    if ($publishExitCode -eq 0 -or ($publishOutput | Out-String) -notmatch 'PUB-001') {
+    $publishText = [string]::Join(' ', @($publishOutput | ForEach-Object { $_.ToString() }))
+    if ($publishExitCode -eq 0 -or $publishText -notmatch 'PUB-001') {
         throw "Publication did not stop specifically for the unresolved user decision (exit $publishExitCode): $($publishOutput | Out-String)"
     }
-    Write-Host 'Git gate smoke test passed: lint failure blocks commit; passing lint allows it; pending user decisions block publication.'
+
+    $state = @{ pendingDecisions = @() } | ConvertTo-Json -Depth 5
+    [System.IO.File]::WriteAllText((Join-Path $contextRoot 'STATE.json'), $state)
+    & git add -- agent-context/STATE.json
+    if ($LASTEXITCODE -ne 0) { throw 'Unable to stage resolved-decision fixture.' }
+    $stagedTree = (& git write-tree).Trim()
+    if ($LASTEXITCODE -ne 0) { throw 'Unable to identify step-2 fixture tree.' }
+    $attestation.scope = 'step-2-checkpoint'
+    $attestation.stagedTree = $stagedTree
+    $attestation.completedSteps = @(1)
+    [System.IO.File]::WriteAllText((Join-Path $fixtureRoot '.git/review.json'),
+            ($attestation | ConvertTo-Json -Depth 5))
+    $ErrorActionPreference = 'Continue'
+    try {
+        $publishOutput = & powershell -NoProfile -File scripts/publish-reviewed.ps1 `
+            -Scope step-2-checkpoint -AttestationPath .git/review.json -Message 'must be blocked' 2>&1
+        $publishExitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $savedErrorAction
+    }
+    $publishText = [string]::Join(' ', @($publishOutput | ForEach-Object { $_.ToString() }))
+    if ($publishExitCode -eq 0 -or $publishText -notmatch "mpleted steps do not match publication scope 'step-2-checkpoint'") {
+        throw "Step-2 publication accepted an incomplete attestation (exit $publishExitCode): $($publishOutput | Out-String)"
+    }
+    Write-Host 'Git gate smoke test passed: lint failure blocks commit; pending decisions and incomplete step-2 attestations block publication.'
     exit 0
 }
 finally {

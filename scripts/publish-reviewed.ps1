@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('setup-checkpoint', 'full-refactor')]
+    [ValidateSet('setup-checkpoint', 'step-2-checkpoint', 'full-refactor')]
     [string]$Scope,
     [Parameter(Mandatory = $true)]
     [string]$AttestationPath,
@@ -38,7 +38,15 @@ try {
     $reviewTime = [DateTimeOffset]::Parse($review.reviewedAt)
     if ($reviewTime -gt [DateTimeOffset]::UtcNow.AddMinutes(5)) { throw 'Review timestamp is in the future.' }
     $completed = @($review.completedSteps | Sort-Object -Unique)
-    $expectedSteps = if ($Scope -eq 'setup-checkpoint') { @(1) } else { @(1, 2, 3, 4, 5, 6) }
+    $expectedSteps = if ($Scope -eq 'setup-checkpoint') {
+        @(1)
+    }
+    elseif ($Scope -eq 'step-2-checkpoint') {
+        @(1, 2)
+    }
+    else {
+        @(1, 2, 3, 4, 5, 6)
+    }
     if (@(Compare-Object $completed $expectedSteps).Count -ne 0) {
         throw "Completed steps do not match publication scope '$Scope'."
     }

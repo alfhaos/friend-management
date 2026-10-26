@@ -49,7 +49,7 @@ class RedisRateLimiterFallbackTest {
     }
 
     @Test
-    void overflowKeepsExistingUserLimitedAndLetsNewUserReachDatabase() {
+    void overflowKeepsExistingUserLimitedAndRejectsNewUser() {
         RedissonClient client = mock(RedissonClient.class);
         when(client.getRateLimiter(anyString())).thenThrow(new RedisException("Redis unavailable"));
         LimitProperties properties = properties();
@@ -63,9 +63,9 @@ class RedisRateLimiterFallbackTest {
         for (long fakeId = 100_000; fakeId < 109_999; fakeId++) {
             assertThat(limiter.allow(fakeId)).as("fake user %s admitted to local window", fakeId).isTrue();
         }
-        assertThat(limiter.allow(2L)).as("new user reaches database without a local slot").isTrue();
+        assertThat(limiter.allow(2L)).as("new user is rejected when no local slot remains").isFalse();
         assertThat(limiter.allow(1L)).as("existing user's limit remains enforced").isFalse();
-        assertThat(limiter.allow(2L)).as("overflow user remains untracked locally").isTrue();
+        assertThat(limiter.allow(2L)).as("repeated overflow cannot bypass the limit").isFalse();
         verify(client, times(1)).getRateLimiter(anyString());
     }
 
@@ -80,19 +80,67 @@ class RedisRateLimiterFallbackTest {
         assertThat(limiter.allow(1L)).isTrue();
         assertThat(limiter.allow(2L)).isTrue();
         for (long overflowId = 100_000; overflowId < 101_000; overflowId++) {
-            assertThat(limiter.allow(overflowId)).isTrue();
+            assertThat(limiter.allow(overflowId)).isFalse();
         }
         assertThat(limiter.expiredSweepCount()).isEqualTo(1);
         verify(client, times(1)).getRateLimiter(anyString());
 
         now.set(TimeUnit.SECONDS.toNanos(2));
         for (long overflowId = 200_000; overflowId < 201_000; overflowId++) {
-            assertThat(limiter.allow(overflowId)).isTrue();
+            assertThat(limiter.allow(overflowId)).isFalse();
         }
-        assertThat(limiter.expiredSweepCount()).isEqualTo(2);
+        assertThat(limiter.expiredSweepCount()).as("active windows need no repeated full sweep").isEqualTo(1);
         verify(client, times(2)).getRateLimiter(anyString());
         assertThat(limiter.allow(1L)).isTrue();
         assertThat(limiter.allow(1L)).isFalse();
+
+        now.set(TimeUnit.SECONDS.toNanos(60));
+        assertThat(limiter.allow(3L)).as("expired slots are reclaimed for a new user").isTrue();
+        assertThat(limiter.expiredSweepCount()).isEqualTo(2);
+        assertThat(limiter.allow(3L)).isTrue();
+        assertThat(limiter.allow(3L)).isFalse();
+    }
+
+    @Test
+    void fullLocalCapacityReclaimsExpiredSlotAtWindowBoundary() {
+        RedissonClient client = mock(RedissonClient.class);
+        when(client.getRateLimiter(anyString())).thenThrow(new RedisException("Redis unavailable"));
+        LimitProperties properties = properties();
+        properties.setWindowMilliSeconds(1_000);
+        AtomicLong now = new AtomicLong();
+        RedisRateLimiter limiter = new RedisRateLimiter(client, properties,
+                now::get, TimeUnit.SECONDS.toNanos(2), 1);
+
+        assertThat(limiter.allow(1L)).isTrue();
+        assertThat(limiter.allow(2L)).as("capacity is full before expiry").isFalse();
+        now.set(TimeUnit.MILLISECONDS.toNanos(999));
+        assertThat(limiter.allow(2L)).as("original window remains active").isFalse();
+        now.set(TimeUnit.SECONDS.toNanos(1));
+        assertThat(limiter.allow(2L)).as("expired slot is available at the boundary").isTrue();
+        assertThat(limiter.allow(1L)).as("newly admitted window retains the only slot").isFalse();
+    }
+
+    @Test
+    void fullLocalCapacityReclaimsEarliestStaggeredWindow() {
+        RedissonClient client = mock(RedissonClient.class);
+        when(client.getRateLimiter(anyString())).thenThrow(new RedisException("Redis unavailable"));
+        LimitProperties properties = properties();
+        properties.setWindowMilliSeconds(1_000);
+        AtomicLong now = new AtomicLong();
+        RedisRateLimiter limiter = new RedisRateLimiter(client, properties,
+                now::get, TimeUnit.SECONDS.toNanos(2), 2);
+
+        assertThat(limiter.allow(1L)).isTrue();
+        now.set(TimeUnit.MILLISECONDS.toNanos(900));
+        assertThat(limiter.allow(2L)).isTrue();
+        assertThat(limiter.allow(3L)).as("both local windows are active").isFalse();
+        now.set(TimeUnit.MILLISECONDS.toNanos(999));
+        assertThat(limiter.allow(3L)).as("oldest window has not expired").isFalse();
+        now.set(TimeUnit.SECONDS.toNanos(1));
+        assertThat(limiter.allow(3L)).as("oldest slot is reclaimed at its own expiry").isTrue();
+        assertThat(limiter.allow(2L)).as("later window remains active").isTrue();
+        assertThat(limiter.allow(2L)).isFalse();
+        assertThat(limiter.allow(1L)).as("the only reclaimed slot now belongs to user 3").isFalse();
     }
 
     @Test

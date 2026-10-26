@@ -28,7 +28,9 @@
    기존 변경을 버리지 않는다. 사용자가 Git 제외를 지정한 `기능요구사항.pdf`는 stage하지 않는다.
 3. `powershell -NoProfile -File scripts/install-git-hooks.ps1`를 실행한다.
    `git config --get core.hooksPath`가 `.githooks`인지 확인한다.
-4. 이번 범위를 `setup-checkpoint` 또는 `full-refactor`로 정하고 상태에 기록한다.
+4. 이번 범위를 `setup-checkpoint`, `step-2-checkpoint`, `full-refactor` 중 실제 완료
+   단계에 맞게 정하고 상태에 기록한다. 각 범위의 완료 단계는 각각 `[1]`, `[1,2]`,
+   `[1,2,3,4,5,6]`이다.
    게시 시점은 사용자 답변으로 확정한다. 설정 체크포인트와 후속 2~6번의 완료 상태는
    각각 별도로 기록한다.
 
@@ -90,7 +92,8 @@ refactor_orchestrator
 1. 작업자가 멈춘 상태에서 의도한 변경만 stage한다. 사용자가 제외한 PDF는 보존하되 stage하지 않는다.
 2. `git diff --cached --check`와 staged/worktree 일치 검사를 통과시킨다.
 3. `git write-tree` 식별값, scope, 완료 단계, 전체 staged diff를 독립 리뷰어에게 전달한다.
-   최초 설치의 scope는 `setup-checkpoint`, `completedSteps`는 `[1]`이다.
+   최초 설치의 scope는 `setup-checkpoint`, `completedSteps`는 `[1]`이었다. 2번만
+   추가 완료한 게시에서는 `step-2-checkpoint`, `[1,2]`를 사용한다.
 4. 리뷰어는 `templates/REVIEW.md` 형식으로 최종 결과를 작성한다. 승인 JSON은
    `git rev-parse --git-path refactor-review.json` 경로에 쓴다. 저장소 파일 안에 자기 tree
    hash를 넣으면 tree가 다시 바뀌므로 승인 JSON은 stage하지 않는다.
@@ -130,4 +133,5 @@ powershell -NoProfile -File scripts/publish-reviewed.ps1 `
 7. commit 성공 후에만 `origin`의 `refactor/backend-quality`로 일반 push한다. 원격 충돌은
    강제로 덮지 않고 중단한다. 통합/충돌 해결로 tree가 바뀌면 검증과 독립 리뷰를 반복한다.
 8. 최종 응답에 실제 완료 scope, commit, push 결과, 남은 단계를 보고한다.
-   setup 체크포인트 승인으로 2~6번 완료나 프로덕션 리팩토링 완료를 주장하지 않는다.
+   setup 체크포인트 승인으로 2~6번 완료를, step-2 체크포인트 승인으로 3~6번 완료를
+   주장하지 않는다.

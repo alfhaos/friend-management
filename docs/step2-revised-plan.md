@@ -12,7 +12,7 @@
 ## 승인된 변경과 예상 동작
 
 1. `src/main/java/com/apr/aprbackendassignment/model/entity/Friendship.java`, `repository/FriendshipJPARepository.java`, `model/dto/response/FriendsRequestsResponse.java`, `model/constant/SORT_GROUP.java`, `service/impl/FriendServiceImpl.java`: `requestedAt` 업무시각을 추가해 신규·재신청 때 설정한다. 목록 필터·응답·정렬은 이 시각을 쓰고 기존 행은 생성 시각으로 대체한다. 기존 ID 재사용과 사용자 행 잠금·친구 수 상한은 유지한다.
-2. `src/main/java/com/apr/aprbackendassignment/util/RedisRateLimiter.java` 및 필요할 때만 `util/FriendRequestFacade.java`: Redis가 불능이어도 DB 제약과 사용자 행 잠금으로 신청을 처리한다. 로컬 요청 제한기의 10,000 사용자 슬롯이 찼을 때 신규 ID를 무제한 통과시키는 현 동작은 별도 정책 결정에 따라 조정한다. 우회 기록 테이블·관리자 기능은 만들지 않는다.
+2. `src/main/java/com/apr/aprbackendassignment/util/RedisRateLimiter.java` 및 필요할 때만 `util/FriendRequestFacade.java`: Redis가 불능이어도 DB 제약과 사용자 행 잠금으로 신청을 처리한다. 요청 횟수 제한은 기존 사용자 ID별 JVM 메모리 제한기로 우회하고, 만료 기록 정리 후 10,000 사용자 슬롯이 여전히 가득 차면 신규 ID를 HTTP 429로 차단한다. 우회 기록 테이블·관리자 기능·`HttpSession`은 만들지 않는다.
 3. `src/main/java/com/apr/aprbackendassignment/common/controllerAdivce/CommExceptionControllerAdvice.java`, `common/response/CommResponseStatus.java`: 방향별/활성 양방향 friendship 유니크 제약 충돌을 409로 매핑한다. DB 장애는 503과 별도 코드로 매핑한다. 5xx 응답 메시지는 모두 위 일반 문구로 맞추고 SQL/스키마 정보는 노출하지 않는다.
 4. `src/main/resources/schema.sql`, `src/main/resources/application.yaml`: 현재 빈 개발 DB에 양방향 활성 유니크 인덱스가 설치되는지 검증한다. 다른 DB에서 충돌 데이터가 있으면 자동 삭제·이관하지 않고 별도 결정을 받는다.
 
@@ -25,9 +25,11 @@
 - 409/5xx 수정 후 `FriendFailureApiTest` 단독, 업무시각 수정 후 `FriendServiceImplTest` 단독이 각각 exit code 0으로 통과했다. 이후 전체 `./gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache`도 2026-10-22 17:01 KST 현재 작업 트리에서 exit code 0으로 통과했다. 최종 수정·staging 뒤에는 다시 검증한다.
 - 재신청 응답의 오늘 날짜와 정렬 순서 검증을 추가한 뒤 2026-10-23 15:30 KST에 같은 전체 명령을 다시 실행했다. exit code 0, Gradle 9개 작업 실행 및 `BUILD SUCCESSFUL`을 확인했다. 최종 staged tree 검증은 별도로 남아 있다.
 
-## 남은 결정
+## 포화 정책 확정 — 2026-10-25
 
-Redis 장애 중 로컬 요청 제한기의 10,000 사용자 슬롯이 찼을 때 미등록 사용자 ID를 HTTP 429로 막을지, DB 처리로 넘길지 결정해야 한다. 현재는 해당 ID를 기록하지 않고 반복 요청을 무제한 허용한다. 이 정책은 친구 관계의 DB 일관성과 별개인 요청 횟수 제한 계약이다.
+사용자는 Redis 정상 시 Redis 제한기, 장애 시 기존 사용자 ID별 JVM 메모리 제한기를 사용하고 `HttpSession`은 도입하지 않는 안을 선택했다. 만료 기록 정리 후에도 10,000 사용자 슬롯이 모두 찼다면 신규 ID를 HTTP 429로 차단하고 이미 기록된 사용자의 제한 창은 유지한다. DB의 친구 관계 유니크 제약은 같은 두 사용자 간 중복을 막는 별도 최종 방어선이다. 이 결정은 `S2-004`에 기록했다. 포화 차단과 가장 이른 만료 시각의 기록 정리 코드는 반영됐고 관련 단위 테스트 6건은 통과했다. Docker를 실행해 전체 테스트 53건을 통과시킨 뒤 경로 별칭 우회 회귀 테스트를 추가했다. 이 테스트는 수정 전 429 대신 200을 재현했고, 사용자의 추가 승인으로 `LimitInterceptor.java`를 고친 뒤 관련 클래스의 3건이 통과했다. 최종 staged tree의 전체 검증과 독립 리뷰를 수행한다.
+
+2026-10-26 현재 작업 트리의 최종 전체 실행은 `.\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache` exit 0, 테스트 54건 성공·실패 0건·건너뜀 0건이다. 새 회귀 테스트의 로컬 제한 기록은 테스트 시작 시 초기화한다. 정확한 staged tree 검증과 독립 승인 결과는 게시 게이트에서 별도로 확인한다.
 
 ## 2026-10-23 독립 예비 리뷰 지적과 수정 계획
 

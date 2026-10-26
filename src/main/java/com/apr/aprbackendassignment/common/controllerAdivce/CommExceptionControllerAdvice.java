@@ -88,11 +88,8 @@ public class CommExceptionControllerAdvice {
     private boolean isUniqueConflict(Throwable error) {
         for (Throwable cause = error; cause != null; cause = cause.getCause()) {
             if (cause instanceof ConstraintViolationException violation
-                    && "23505".equals(violation.getSQLState())) {
-                return true;
-            }
-            if (cause instanceof SQLException sql
-                    && "23505".equals(sql.getSQLState())) {
+                    && "23505".equals(violation.getSQLState())
+                    && isFriendshipUniqueConstraint(violation.getConstraintName())) {
                 return true;
             }
             if (cause == cause.getCause()) {
@@ -100,6 +97,12 @@ public class CommExceptionControllerAdvice {
             }
         }
         return false;
+    }
+
+    private boolean isFriendshipUniqueConstraint(String constraintName) {
+        return "ux_friendship_active_pair".equals(constraintName)
+                || "uk8pnm9rovglqfddxo47d2afm35".equals(constraintName)
+                || "friendship_requester_id_receiver_id_key".equals(constraintName);
     }
 
     private boolean isDatabaseUnavailable(Throwable error) {

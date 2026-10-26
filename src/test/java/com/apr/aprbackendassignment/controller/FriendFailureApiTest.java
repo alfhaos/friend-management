@@ -43,6 +43,22 @@ class FriendFailureApiTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.message").value(SERVER_ERROR_MESSAGE));
     }
 
+    @Test
+    void unrelatedHibernateUniqueConstraintIsNotReportedAsFriendRequestConflict() throws Exception {
+        Users requester = fixture.user("requester");
+        Users receiver = fixture.user("receiver");
+        SQLException cause = new SQLException("duplicate key", "23505");
+        doThrow(new DataIntegrityViolationException("unrelated unique conflict",
+                new ConstraintViolationException("unrelated unique conflict", cause, "ux_other_table")))
+                .when(facade).requestFriend(anyLong(), any(FriendRequest.class));
+
+        mockMvc.perform(request(requester, receiver))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.code").value("INTERNAL_SERVER_ERROR"))
+                .andExpect(jsonPath("$.message").value(SERVER_ERROR_MESSAGE));
+        assertThat(friendships.count()).isZero();
+    }
+
     private static final String SERVER_ERROR_MESSAGE = "서버에 문제가 생겼습니다. 잠시 후 다시 시도해주세요.";
 
     @Autowired
@@ -86,6 +102,22 @@ class FriendFailureApiTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.status").value(409))
                 .andExpect(jsonPath("$.code").value("FRIEND_REQUEST_CONFLICT"))
                 .andExpect(jsonPath("$.data").doesNotExist());
+        assertThat(friendships.count()).isZero();
+    }
+
+    @Test
+    void returnsConflictForDevelopmentDatabaseDirectionalConstraint() throws Exception {
+        Users requester = fixture.user("requester");
+        Users receiver = fixture.user("receiver");
+        SQLException cause = new SQLException("duplicate key", "23505");
+        doThrow(new DataIntegrityViolationException("directional pair conflict",
+                new ConstraintViolationException("directional pair conflict", cause,
+                        "uk8pnm9rovglqfddxo47d2afm35")))
+                .when(facade).requestFriend(anyLong(), any(FriendRequest.class));
+
+        mockMvc.perform(request(requester, receiver))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("FRIEND_REQUEST_CONFLICT"));
         assertThat(friendships.count()).isZero();
     }
 

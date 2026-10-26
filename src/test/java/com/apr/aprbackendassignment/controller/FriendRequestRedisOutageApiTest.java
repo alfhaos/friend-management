@@ -3,7 +3,9 @@ package com.apr.aprbackendassignment.controller;
 import com.apr.aprbackendassignment.model.dto.request.FriendRequest;
 import com.apr.aprbackendassignment.model.entity.Users;
 import com.apr.aprbackendassignment.support.IntegrationTestSupport;
+import com.apr.aprbackendassignment.util.RedisRateLimiter;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.RedisException;
@@ -12,6 +14,11 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -29,6 +36,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 })
 class FriendRequestRedisOutageApiTest extends IntegrationTestSupport {
 
+    @Autowired
+    private RedisRateLimiter limiter;
+
+    @BeforeEach
+    void resetRateLimiterState() {
+        ((Map<?, ?>) ReflectionTestUtils.getField(limiter, "localWindows")).clear();
+        ((AtomicLong) ReflectionTestUtils.getField(limiter, "redisRetryAfterNanos")).set(0L);
+        ((AtomicBoolean) ReflectionTestUtils.getField(limiter, "redisProbeInProgress")).set(false);
+    }
+
     @Test
     void listingIncomingRequestsDoesNotConsumeApplicationRateLimit() throws Exception {
         Users viewer = fixture.user("viewer");
@@ -38,7 +55,8 @@ class FriendRequestRedisOutageApiTest extends IntegrationTestSupport {
         for (int attempt = 0; attempt < 3; attempt++) {
             mockMvc.perform(get("/api/friends/requests")
                             .header("X-USER-ID", viewer.getId())
-                            .param("window", "OVER"))
+                            .param("window", "OVER")
+                            .param("sort", "REQUESTEDAT,DESC"))
                     .andExpect(status().isOk());
         }
         verify(redisClient, times(0)).getRateLimiter(anyString());
@@ -73,8 +91,28 @@ class FriendRequestRedisOutageApiTest extends IntegrationTestSupport {
         assertThat(friendships.findByRequesterIdAndReceiverId(other.getId(), otherTarget.getId())).isNotNull();
     }
 
+    @Test
+    void semicolonPathAliasStillConsumesApplicationRateLimit() throws Exception {
+        Users requester = fixture.user("alias-requester");
+        Users first = fixture.user("alias-first");
+        Users second = fixture.user("alias-second");
+        Users blocked = fixture.user("alias-blocked");
+        doThrow(new RedisException("simulated Redis rate limiter failure"))
+                .when(redisClient).getRateLimiter(anyString());
+
+        requestWithPath("/api/friends/request;x=1", requester, first, false);
+        requestWithPath("/api/friends/request;x=1", requester, second, false);
+        requestWithPath("/api/friends/request;x=1", requester, blocked, true);
+
+        assertThat(friendships.findByRequesterIdAndReceiverId(requester.getId(), blocked.getId())).isNull();
+    }
+
     private void request(Users requester, Users receiver, boolean blocked) throws Exception {
-        mockMvc.perform(post("/api/friends/request")
+        requestWithPath("/api/friends/request", requester, receiver, blocked);
+    }
+
+    private void requestWithPath(String path, Users requester, Users receiver, boolean blocked) throws Exception {
+        mockMvc.perform(post(path)
                         .header("X-USER-ID", requester.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new FriendRequest(receiver.getId()))))

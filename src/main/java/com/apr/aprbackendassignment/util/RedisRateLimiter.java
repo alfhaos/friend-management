@@ -68,6 +68,9 @@ public class RedisRateLimiter {
 
     public boolean allow(Long userId) {
         long now = nanoClock.getAsLong();
+        if (hasActiveLocalWindow(userId, now)) {
+            return allowLocally(userId);
+        }
         long retryAfter = redisRetryAfterNanos.get();
         if (retryAfter != 0) {
             if (now - retryAfter < 0 || !redisProbeInProgress.compareAndSet(false, true)) {
@@ -80,6 +83,12 @@ public class RedisRateLimiter {
             }
         }
         return allowThroughRedis(userId, false);
+    }
+
+    private boolean hasActiveLocalWindow(Long userId, long now) {
+        long windowNanos = TimeUnit.MILLISECONDS.toNanos(properties.getWindowMilliSeconds());
+        return localWindows.computeIfPresent(userId, (key, window) ->
+                now - window.startedNanos >= windowNanos ? null : window) != null;
     }
 
     private boolean allowThroughRedis(Long userId, boolean recoveryProbe) {
@@ -151,13 +160,13 @@ public class RedisRateLimiter {
             }
             if (localWindows.size() >= maxLocalUsers) {
                 if (!localCleanupScheduled || now - nextLocalCleanupNanos >= 0) {
-                    evictExpiredWindows(now, windowNanos);
-                    nextLocalCleanupNanos = now + retryDelayNanos;
+                    long untilNextExpiryNanos = evictExpiredWindows(now, windowNanos);
+                    nextLocalCleanupNanos = now + untilNextExpiryNanos;
                     localCleanupScheduled = true;
                 }
                 if (localWindows.size() >= maxLocalUsers) {
-                    // An untracked ID may proceed to the database while active user windows stay intact.
-                    return true;
+                    // Keep the local rate limit enforced when no user slot is available.
+                    return false;
                 }
             }
             LocalWindow window = new LocalWindow(now);
@@ -169,12 +178,18 @@ public class RedisRateLimiter {
         }
     }
 
-    private void evictExpiredWindows(long now, long windowNanos) {
+    private long evictExpiredWindows(long now, long windowNanos) {
         expiredSweepCount.incrementAndGet();
+        long untilNextExpiryNanos = windowNanos;
         for (Long userId : localWindows.keySet()) {
-            localWindows.computeIfPresent(userId, (key, window) ->
+            LocalWindow active = localWindows.computeIfPresent(userId, (key, window) ->
                     now - window.startedNanos >= windowNanos ? null : window);
+            if (active != null) {
+                long remaining = windowNanos - (now - active.startedNanos);
+                untilNextExpiryNanos = Math.min(untilNextExpiryNanos, Math.max(0, remaining));
+            }
         }
+        return untilNextExpiryNanos;
     }
 
     long expiredSweepCount() {
