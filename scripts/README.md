@@ -13,6 +13,6 @@
 3. 리뷰어는 `git write-tree` 결과와 실제 범위로 JSON 증적을 작성한다. `review-attestation.example.json`은 형식 예시이며 승인 증거로 사용하면 안 된다. 증적은 stage되지 않는 Git 내부 경로 `.git/refactor-review.json`에 둔다. staging된 증적 파일 안에 자신의 tree hash를 넣는 순환 참조를 만들지 않는다.
 4. `powershell -NoProfile -File scripts/publish-reviewed.ps1 -Scope setup-checkpoint -AttestationPath <실제 JSON 경로> -Message 'chore: configure refactoring agents and quality gates'`를 실행한다.
 
-`setup-checkpoint`는 구성 및 1번 완료만 의미한다. `step-2-checkpoint`는 1~2번 완료 후에만 사용하고, `full-refactor`는 실제 1~6 전체 완료 후에만 사용한다. `completedSteps`는 각각 `[1]`, `[1,2]`, `[1,2,3,4,5,6]`과 정확히 일치해야 한다. `findings`는 빈 배열이어야 한다. 리뷰어 이름/시간은 독립 리뷰 결과에서 가져오며 오케스트레이터가 승인 결과를 만들어 내면 안 된다.
+`setup-checkpoint`는 구성 및 1번 완료만 의미한다. `step-2-checkpoint`는 1~2번, `step-3-checkpoint`는 1~3번 완료 후에만 사용하고, `full-refactor`는 실제 1~6 전체 완료 후에만 사용한다. `completedSteps`는 각각 `[1]`, `[1,2]`, `[1,2,3]`, `[1,2,3,4,5,6]`과 정확히 일치해야 한다. `findings`는 빈 배열이어야 한다. 리뷰어 이름/시간은 독립 리뷰 결과에서 가져오며 오케스트레이터가 승인 결과를 만들어 내면 안 된다.
 
 게이트는 unstaged tracked 변경과 untracked 빌드/게이트 입력을 거절한다. lint/test가 읽는 파일과 Git index의 차이로 검사를 우회하지 않게 한다. 최종 게시기는 lint·test·sampleData 컴파일을 다시 실행하고, tree가 바뀌면 중단한다. 커밋에 성공하고 tree가 일치할 때만 `origin/refactor/backend-quality`로 일반 push한다. push 실패 시 강제 push·main 병합은 하지 않는다. Docker가 실행 중이어야 통합 테스트가 통과한다.

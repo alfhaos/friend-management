@@ -20,6 +20,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -42,6 +43,7 @@ public class FriendServiceImpl implements FriendService {
     private final FriendshipJPARepository friendshipJPARepository;
     private final UsersJPARepository usersJPARepository;
     private final LimitProperties limitProperties;
+    private final Clock clock;
     // 목록 조회 기능 - 현재 고정된 사용자 ID (예: 1L) 사용
     private static final Long CURRENT_USER_ID = 1L;
     @Transactional(readOnly = true)
@@ -63,9 +65,10 @@ public class FriendServiceImpl implements FriendService {
     public PageResponse<FriendsRequestsResponse> getReceiveFriendsList(Pageable pageable, WINDOW_SLIDING windowSliding) {
         Users currentUser = getUserOrThrow(CURRENT_USER_ID);
 
-        LocalDateTime time = windowSliding.calculateTimeWindow();
+        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime time = windowSliding.calculateTimeWindow(now);
         LocalDateTime start = time != null ? time.toLocalDate().atStartOfDay() : null;
-        LocalDateTime end = time != null ? LocalDateTime.now() : null;
+        LocalDateTime end = time != null ? now : null;
 
         Page<Friendship> result = friendshipJPARepository.getFriendsReceiveList(currentUser.getId(), start, end, pageable);
         Page<FriendsRequestsResponse> dtoPage =  FriendsRequestsResponse.fromEntityPage(result);
@@ -101,15 +104,12 @@ public class FriendServiceImpl implements FriendService {
         for (Friendship relationship : relationships) {
             if (relationship.getRequester().getId().equals(xUserId)
                     && relationship.getStatus() == FRIENDSHIP_STATUS.REJECTED) {
-                LocalDateTime requestedAt = LocalDateTime.now();
-                relationship.updateUpdateAt(requestedAt);
-                relationship.updateRequestedAt(requestedAt);
-                relationship.updateStatus(FRIENDSHIP_STATUS.REQUESTED);
+                relationship.requestAgain(xUserId, LocalDateTime.now(clock));
                 return;
             }
         }
 
-        friendshipJPARepository.save(Friendship.create(currentUser, targetUser, FRIENDSHIP_STATUS.REQUESTED));
+        friendshipJPARepository.save(Friendship.request(currentUser, targetUser, LocalDateTime.now(clock)));
     }
 
     @Transactional
@@ -140,7 +140,7 @@ public class FriendServiceImpl implements FriendService {
         if(targetUserFriendCnt >= limitProperties.getMaxFriend()) {
             throw new CommException(CommResponseStatus.FRIEND_LIMIT_EXCEEDED_REQUESTER);
         }
-        friendship.updateStatus(FRIENDSHIP_STATUS.ACCEPTED);
+        friendship.accept(xUserId, LocalDateTime.now(clock));
     }
 
     @Transactional
@@ -157,7 +157,7 @@ public class FriendServiceImpl implements FriendService {
             throw new CommException(CommResponseStatus.REQUEST_STATUS_ERROR);
         }
 
-        friendship.updateStatus(FRIENDSHIP_STATUS.REJECTED);
+        friendship.reject(xUserId);
     }
 
 

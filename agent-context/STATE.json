@@ -2,9 +2,24 @@
   "schemaVersion": 1,
   "branch": "refactor/backend-quality",
   "sourcePlan": "BACKEND_QUALITY_REVIEW.md#20",
-  "activeScope": "step-2-checkpoint",
+  "activeScope": "step-3-checkpoint",
   "pendingDecisions": [],
   "resolvedDecisions": [
+    {
+      "id": "S3-001",
+      "decision": "공개 approvedAt 필드·정렬 키 이름은 유지하고 응답값·정렬 기준을 실제 수락 시각으로 변경",
+      "source": "2026-10-26 사용자 직접 답변: 1,3번은 너가 제안해준데로 진행해"
+    },
+    {
+      "id": "S3-002",
+      "decision": "사용자 진술상 현재 DB는 비어 있음; 기존 ACCEPTED 행의 updated_time fallback·일괄 이관은 수행하지 않음; 새 수락의 approved_at을 저장하고 이후 수정은 감사 updatedTime으로 관리",
+      "source": "2026-10-26 사용자 직접 답변: 현재 db를 비워놨으니 과거 값 이런게 없어 approved_at에 저장하도록 하고 수정시에는 upadatetime에 저장"
+    },
+    {
+      "id": "S3-PROD-APPROVAL",
+      "decision": "제시한 3번 프로덕션 대상 Friendship, FriendServiceImpl, FriendsResponse, SORT_GROUP, WINDOW_SLIDING, TimeConfig, schema.sql, SampleDataInsert의 생성·수정 승인",
+      "source": "2026-10-26 사용자 직접 답변: 나머지 1,3번은 너가 제안해준데로 진행해"
+    },
     {
       "id": "S2-REVIEW-04-APPROVAL",
       "decision": "LimitInterceptor.java에서 Spring MVC가 매핑한 신청 POST 경로 기준으로 요청 제한을 적용해 세미콜론 경로 별칭 우회를 수정",
@@ -71,16 +86,16 @@
       "source": "2026-10-22 사용자 직접 답변"
     }
   ],
-  "checkpointStatus": "step-2-validation-complete",
-  "currentStep": 2,
+  "checkpointStatus": "step-3-implementation-complete",
+  "currentStep": 3,
   "steps": [
     {
       "number": 1,
       "status": "complete",
       "evidence": "BACKEND_QUALITY_REVIEW.md section 21 and current lint/test/sampleDataClasses run: 17 tests, 0 failures, 0 skipped"
     },
-    { "number": 2, "status": "complete", "evidence": "2026-10-26 main worktree lint test sampleDataClasses exit 0; 54 tests, 0 failures, 0 skipped; final staged-tree attestation required for publication" },
-    { "number": 3, "status": "pending" },
+    { "number": 2, "status": "complete", "evidence": "2026-10-26 commit 1216e12 published to origin/refactor/backend-quality after final review and validation; 54 tests, 0 failures, 0 skipped" },
+    { "number": 3, "status": "complete", "evidence": "2026-10-26 staged core step-3 implementation independently approved by code and security reviewers; lint test sampleDataClasses exit 0; 63 tests, 0 failures, 0 skipped" },
     { "number": 4, "status": "pending" },
     { "number": 5, "status": "pending" },
     { "number": 6, "status": "pending" }
@@ -88,10 +103,10 @@
   "maxParallelImplementers": 2,
   "noProgressLimit": 3,
   "publicationAuthorized": true,
-  "publicationScope": "step-2-checkpoint",
+  "publicationScope": "step-3-checkpoint",
   "publicationAttestation": "git-path:refactor-review.json",
   "openRequiredFindings": [],
-  "reviewStatus": "awaiting-final-staged-tree-review",
+  "reviewStatus": "step-3-core-code-and-security-approved",
   "currentValidation": [
     {
       "command": ".\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache",
@@ -177,12 +192,27 @@
       "command": ".\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache",
       "exitCode": 0,
       "result": "2026-10-26; main worktree after approved path fix and test state isolation; 54 tests, 0 failures, 0 skipped; final staged-tree validation and review pending"
+    },
+    {
+      "command": ".\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache",
+      "exitCode": 0,
+      "result": "2026-10-26; step-3 worktree, 63 tests across 16 suites, 0 failures, 0 errors, 0 skipped; 9 tasks executed; independent review pending"
+    },
+    {
+      "command": ".\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache",
+      "exitCode": 0,
+      "result": "2026-10-26; independent code reviewer reran the original step-3 staged tree, 63 tests across 16 suites, 0 failures, 0 errors, 0 skipped; publication gate documentation changes require final-tree review"
+    },
+    {
+      "command": "powershell -NoProfile -File scripts/test-git-hook.ps1",
+      "exitCode": 0,
+      "result": "2026-10-26; hook and publication gate smoke test passed; step-2 and step-3 incomplete attestation cases rejected"
     }
   ],
   "notes": [
-    "Step 2 implementation and full worktree verification are complete; final exact staged-tree independent review and publication gate remain.",
+    "Step 2 was published in commit 1216e12; step 3 contract and production scope were approved on 2026-10-26. Step 3 implementation, validation, and core code/security reviews are complete.",
     "Prior WIP transfer is historical and did not itself complete step 2.",
-    "Steps 3 through 6 remain pending.",
+    "Step 3 checkpoint scope is [1,2,3]. The final publication tree including updated gate documentation requires independent review; steps 4 through 6 remain pending.",
     "Final independent review must approve the exact staged tree; never store the attested tree hash inside this tracked file."
   ]
 }

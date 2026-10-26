@@ -26,14 +26,22 @@ public final class FriendshipFixture {
     }
 
     public Friendship relationship(Users requester, Users receiver, FRIENDSHIP_STATUS status) {
-        return friendships.saveAndFlush(Friendship.create(requester, receiver, status));
+        LocalDateTime now = LocalDateTime.now();
+        Friendship friendship = Friendship.request(requester, receiver, now);
+        switch (status) {
+            case REQUESTED -> { }
+            case ACCEPTED -> friendship.accept(receiver.getId(), now);
+            case REJECTED -> friendship.reject(receiver.getId());
+            default -> throw new IllegalArgumentException("Unsupported fixture status: " + status);
+        }
+        return friendships.saveAndFlush(friendship);
     }
 
     public Friendship relationshipAt(Users requester, Users receiver, FRIENDSHIP_STATUS status, LocalDateTime time) {
         Friendship friendship = relationship(requester, receiver, status);
         // Historical fixtures must bypass JPA auditing without adding test-only entity setters.
-        jdbc.update("UPDATE friendship SET created_time = ?, updated_time = ?, requested_at = ? WHERE id = ?",
-                time, time, time, friendship.getId());
+        jdbc.update("UPDATE friendship SET created_time = ?, updated_time = ?, requested_at = ?, approved_at = ? WHERE id = ?",
+                time, time, time, status == FRIENDSHIP_STATUS.ACCEPTED ? time : null, friendship.getId());
         return friendship;
     }
 }

@@ -37,14 +37,21 @@ class FriendServiceImplTest extends IntegrationTestSupport {
     private FriendRequestFacade facade;
 
     @Test
-    void listsOnlyCurrentUsersAcceptedFriendsInCreatedTimeOrder() {
+    void listsOnlyCurrentUsersAcceptedFriendsInApprovalOrder() {
         Users current = currentListUser();
         Users older = fixture.user("older");
         Users newer = fixture.user("newer");
         Users outsider = fixture.user("outsider");
         LocalDateTime now = LocalDateTime.now();
-        fixture.relationshipAt(current, older, ACCEPTED, now.minusDays(2));
-        fixture.relationshipAt(newer, current, ACCEPTED, now.minusDays(1));
+        LocalDateTime firstApproval = LocalDateTime.of(2025, 1, 1, 12, 0);
+        LocalDateTime secondApproval = firstApproval.plusHours(1);
+        Friendship approvedLater = fixture.relationshipAt(current, newer, ACCEPTED, secondApproval);
+        Friendship approvedEarlier = fixture.relationshipAt(older, current, ACCEPTED, firstApproval);
+        // Request/audit order is the reverse of approval order; updated_time is not an approval timestamp.
+        jdbc.update("UPDATE friendship SET created_time = ?, requested_at = ?, updated_time = ? WHERE id = ?",
+                now.minusDays(2), now.minusDays(2), now.minusDays(3), approvedLater.getId());
+        jdbc.update("UPDATE friendship SET created_time = ?, requested_at = ?, updated_time = ? WHERE id = ?",
+                now.minusDays(1), now.minusDays(1), now, approvedEarlier.getId());
         fixture.relationship(current, outsider, REQUESTED);
         fixture.relationship(older, outsider, ACCEPTED);
 
@@ -53,9 +60,11 @@ class FriendServiceImplTest extends IntegrationTestSupport {
         assertThat(response.getTotalCount()).isEqualTo(2);
         assertThat(response.getTotalPages()).isEqualTo(2);
         assertThat(response.getItems()).extracting(FriendsResponse::getUserId).containsExactly(newer.getId());
+        assertThat(response.getItems().getFirst().getApprovedAt()).isEqualTo(secondApproval);
 
         var secondPage = friendService.getFriendsList(new PageRequestParam(1, 1, "approvedAt,desc").toPageable());
         assertThat(secondPage.getItems()).extracting(FriendsResponse::getUserId).containsExactly(older.getId());
+        assertThat(secondPage.getItems().getFirst().getApprovedAt()).isEqualTo(firstApproval);
     }
 
     @Test
@@ -81,6 +90,27 @@ class FriendServiceImplTest extends IntegrationTestSupport {
                 .containsExactly(included.getId().toString());
         assertThat(response.getItems()).extracting(FriendsRequestsResponse::getRequestUserId)
                 .containsExactly(recent.getId());
+    }
+
+    @Test
+    void incomingWindowIncludesStartAndExcludesEnd() {
+        Users receiver = fixture.user("receiver");
+        LocalDateTime start = LocalDateTime.of(2025, 1, 1, 12, 0);
+        LocalDateTime end = start.plusDays(1);
+        fixture.relationshipAt(fixture.user("before-start"), receiver, REQUESTED, start.minusSeconds(1));
+        Friendship atStart = fixture.relationshipAt(fixture.user("at-start"), receiver, REQUESTED, start);
+        Friendship afterStart = fixture.relationshipAt(fixture.user("after-start"), receiver, REQUESTED,
+                start.plusSeconds(1));
+        Friendship beforeEnd = fixture.relationshipAt(fixture.user("before-end"), receiver, REQUESTED,
+                end.minusSeconds(1));
+        fixture.relationshipAt(fixture.user("at-end"), receiver, REQUESTED, end);
+        fixture.relationshipAt(fixture.user("after-end"), receiver, REQUESTED, end.plusSeconds(1));
+
+        var page = friendships.getFriendsReceiveListInWindow(receiver.getId(), start, end,
+                new PageRequestParam(0, 30, "requestedAt,desc").toPageable());
+
+        assertThat(page.getContent()).extracting(Friendship::getId)
+                .containsExactlyInAnyOrder(atStart.getId(), afterStart.getId(), beforeEnd.getId());
     }
 
     @Test
@@ -159,6 +189,7 @@ class FriendServiceImplTest extends IntegrationTestSupport {
         Friendship reused = friendships.findByRequesterIdAndReceiverId(requester.getId(), receiver.getId());
         assertThat(reused.getId()).isEqualTo(rejected.getId());
         assertThat(reused.getStatus()).isEqualTo(REQUESTED);
+        assertThat(reused.getApprovedAt()).isNull();
         assertThat(reused.getRequester().getId()).isEqualTo(requester.getId());
         assertThat(reused.getReceiver().getId()).isEqualTo(receiver.getId());
         assertThat(reload(untouched).getStatus()).isEqualTo(REJECTED);
@@ -170,8 +201,8 @@ class FriendServiceImplTest extends IntegrationTestSupport {
         Users receiver = currentListUser();
         Users requester = fixture.user("requester");
         Users earlierRequester = fixture.user("earlier");
-        Friendship rejected = fixture.relationshipAt(requester, receiver, REJECTED,
-                LocalDateTime.now().minusDays(3));
+        LocalDateTime previousTime = LocalDateTime.now().minusDays(3);
+        Friendship rejected = fixture.relationshipAt(requester, receiver, REJECTED, previousTime);
         Friendship earlierToday = fixture.relationshipAt(earlierRequester, receiver, REQUESTED,
                 LocalDateTime.now().toLocalDate().atStartOfDay());
 
@@ -180,6 +211,8 @@ class FriendServiceImplTest extends IntegrationTestSupport {
         Friendship reused = friendships.findByRequesterIdAndReceiverId(requester.getId(), receiver.getId());
         assertThat(reused.getId()).isEqualTo(rejected.getId());
         assertThat(reused.getStatus()).isEqualTo(REQUESTED);
+        assertThat(reused.getUpdatedTime()).isAfter(previousTime);
+        assertThat(reused.getApprovedAt()).isNull();
         var today = friendService.getReceiveFriendsList(
                 new PageRequestParam(0, 30, "requestedAt,desc").toPageable(), WINDOW_SLIDING.DAY);
         assertThat(today.getTotalCount()).isEqualTo(2);
@@ -219,8 +252,14 @@ class FriendServiceImplTest extends IntegrationTestSupport {
         Users requester = fixture.user("requester");
         Users receiver = fixture.user("receiver");
         Friendship pending = fixture.relationship(requester, receiver, REQUESTED);
+        LocalDateTime requestedAt = reload(pending).getRequestedAt();
+        LocalDateTime before = LocalDateTime.now().minusSeconds(1);
         friendService.requestAccept(receiver.getId(), pending.getId().toString());
-        assertThat(reload(pending).getStatus()).isEqualTo(ACCEPTED);
+        LocalDateTime after = LocalDateTime.now().plusSeconds(1);
+        Friendship accepted = reload(pending);
+        assertThat(accepted.getStatus()).isEqualTo(ACCEPTED);
+        assertThat(accepted.getApprovedAt()).isBetween(before, after);
+        assertThat(accepted.getRequestedAt()).isEqualTo(requestedAt);
         assertThat(friendships.countUsersFriends(requester.getId(), ACCEPTED)).isEqualTo(1);
         assertThat(friendships.countUsersFriends(receiver.getId(), ACCEPTED)).isEqualTo(1);
     }
@@ -232,6 +271,7 @@ class FriendServiceImplTest extends IntegrationTestSupport {
         Friendship pending = fixture.relationship(requester, receiver, REQUESTED);
         friendService.requestReject(receiver.getId(), pending.getId().toString());
         assertThat(reload(pending).getStatus()).isEqualTo(REJECTED);
+        assertThat(reload(pending).getApprovedAt()).isNull();
         assertThat(friendships.countUsersFriends(requester.getId(), ACCEPTED)).isZero();
         assertThat(friendships.countUsersFriends(receiver.getId(), ACCEPTED)).isZero();
     }

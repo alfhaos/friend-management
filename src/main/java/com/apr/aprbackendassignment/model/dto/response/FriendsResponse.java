@@ -40,7 +40,7 @@ public class FriendsResponse {
                     .userId(friendId)
                     .fromUserId(f.getRequester().getId())
                     .toUserId(f.getReceiver().getId())
-                    .approvedAt(f.getUpdatedTime())
+                    .approvedAt(f.getApprovedAt())
                     .build();
         });
     }

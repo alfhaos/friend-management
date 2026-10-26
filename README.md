@@ -1,7 +1,7 @@
 # 목표 시스템
 친구 관리 시스템 구축
 
-> **작업 중 체크포인트 (2026-10-23):** 백엔드 품질 리팩토링 2번은 아직 완료되지 않았습니다. 현재 회귀 테스트 3건이 알려진 결함을 재현하며 전체 테스트가 실패합니다. 다른 컴퓨터에서 이어서 작업할 때는 [2번 인수인계](docs/step2-handoff.md)와 [상태 기록](agent-context/STATE.json)을 먼저 확인하세요.
+> **리팩토링 진행 상태 (2026-10-26):** 1~2번은 `refactor/backend-quality` 브랜치에 게시했고, 3번은 구현·검증·독립 리뷰를 완료했습니다. 4~6번은 미완료입니다. 현재 상태와 사용자 결정은 [상태 기록](agent-context/STATE.json)과 [결정 기록](agent-context/DECISIONS.md)을 참조하세요.
 
 사용자 인증 기능이 없기에 목록 조회 API는 기본적으로 사용자 아이디 (1L)을 기준으로 조회합니다.
 
@@ -46,14 +46,14 @@
 ## 📋 API 명세 상세 정리
 - 친구 목록 조회:
   - 친구 관계 상태가 ACCEPTED인 항목만 페이징 처리하여 반환.
-  - response의 'user_id' 필드에는 친구의 사용자 ID 응답, from_user_id 및 to_user_id는 각각 발신자, 수신자로 구분하였습니다.
-  - approved_at 응답 필드는 updated_time과 동일한 값입니다.
-  - 현재 `approvedAt` 정렬 키는 관계의 생성 시각을 사용합니다. 실제 수락 시각 정렬은 리뷰 3번 단계의 개선 대상입니다.
+  - 응답의 `userId`는 친구의 사용자 ID이며, `fromUserId`와 `toUserId`는 각각 발신자와 수신자의 ID입니다.
+  - 응답의 `approvedAt`은 수락 시 `approved_at`에 저장한 실제 수락 시각입니다. `approvedAt` 정렬 키도 이 수락 시각을 사용합니다.
+  - 일반 수정 시각은 감사 필드 `updatedTime`으로 관리하며, 수락 시각과 별도로 보관합니다.
   
 - 받은 요청 목록:
   - `window` 쿼리 파라미터로 기간 필터 적용(1d, 7d, 30d, 90d, over).
   - 페이징 파라미터는 page(0-based), maxSize(1~100), sort(field,dir) 형식으로 받습니다.
-  - response의 `request_id`는 Friendship의 UUID, `request_user_id`는 요청자 ID, `requestedAt`은 created_time 값입니다.
+  - response의 `requestId`는 Friendship의 UUID, `requestUserId`는 요청자 ID, `requestedAt`은 신청 시각입니다. 같은 방향으로 재신청하면 새 신청 시각을 사용합니다. `requested_at`이 없는 기존 행은 `created_time`을 사용합니다.
   - `window=over`일 때는 기간 제한 없이 전체 요청을 조회합니다.
   
 - 친구 신청:

@@ -1,6 +1,7 @@
 -- Hibernate creates or updates the table first; SQL initialization then installs this index.
 -- Existing active duplicates intentionally fail startup so data can be resolved explicitly.
 ALTER TABLE friendship ADD COLUMN IF NOT EXISTS requested_at timestamp;
+ALTER TABLE friendship ADD COLUMN IF NOT EXISTS approved_at timestamp;
 ALTER TABLE friendship ALTER COLUMN requester_id SET NOT NULL;
 ALTER TABLE friendship ALTER COLUMN receiver_id SET NOT NULL;
 ALTER TABLE friendship ALTER COLUMN status SET NOT NULL;

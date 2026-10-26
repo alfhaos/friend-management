@@ -40,11 +40,10 @@ public enum WINDOW_SLIDING {
                         new CommException(CommResponseStatus.BAD_REQUEST));
     }
 
-    public LocalDateTime calculateTimeWindow() {
+    public LocalDateTime calculateTimeWindow(LocalDateTime now) {
         if (this == OVER) {
             return null; // 전체 조회용
         }
-        return LocalDateTime.now()
-                .minusDays(codeDate);
+        return now.minusDays(codeDate);
     }
 }

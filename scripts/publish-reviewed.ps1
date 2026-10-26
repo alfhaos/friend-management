@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('setup-checkpoint', 'step-2-checkpoint', 'full-refactor')]
+    [ValidateSet('setup-checkpoint', 'step-2-checkpoint', 'step-3-checkpoint', 'full-refactor')]
     [string]$Scope,
     [Parameter(Mandatory = $true)]
     [string]$AttestationPath,
@@ -43,6 +43,9 @@ try {
     }
     elseif ($Scope -eq 'step-2-checkpoint') {
         @(1, 2)
+    }
+    elseif ($Scope -eq 'step-3-checkpoint') {
+        @(1, 2, 3)
     }
     else {
         @(1, 2, 3, 4, 5, 6)

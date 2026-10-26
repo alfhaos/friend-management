@@ -93,10 +93,29 @@ try {
         $ErrorActionPreference = $savedErrorAction
     }
     $publishText = [string]::Join(' ', @($publishOutput | ForEach-Object { $_.ToString() }))
-    if ($publishExitCode -eq 0 -or $publishText -notmatch "mpleted steps do not match publication scope 'step-2-checkpoint'") {
+    $publishCompact = $publishText -replace '\s', ''
+    if ($publishExitCode -eq 0 -or $publishCompact -notmatch "Completedstepsdonotmatchpublicationscope'step-2-checkpoint'") {
         throw "Step-2 publication accepted an incomplete attestation (exit $publishExitCode): $($publishOutput | Out-String)"
     }
-    Write-Host 'Git gate smoke test passed: lint failure blocks commit; pending decisions and incomplete step-2 attestations block publication.'
+    $attestation.scope = 'step-3-checkpoint'
+    $attestation.completedSteps = @(1, 2)
+    [System.IO.File]::WriteAllText((Join-Path $fixtureRoot '.git/review.json'),
+            ($attestation | ConvertTo-Json -Depth 5))
+    $ErrorActionPreference = 'Continue'
+    try {
+        $publishOutput = & powershell -NoProfile -File scripts/publish-reviewed.ps1 `
+            -Scope step-3-checkpoint -AttestationPath .git/review.json -Message 'must be blocked' 2>&1
+        $publishExitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $savedErrorAction
+    }
+    $publishText = [string]::Join(' ', @($publishOutput | ForEach-Object { $_.ToString() }))
+    $publishCompact = $publishText -replace '\s', ''
+    if ($publishExitCode -eq 0 -or $publishCompact -notmatch "Completedstepsdonotmatchpublicationscope'step-3-checkpoint'") {
+        throw "Step-3 publication accepted an incomplete attestation (exit $publishExitCode): $($publishOutput | Out-String)"
+    }
+    Write-Host 'Git gate smoke test passed: lint failure blocks commit; pending decisions and incomplete step-2/step-3 attestations block publication.'
     exit 0
 }
 finally {

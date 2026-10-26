@@ -1,7 +1,6 @@
 package com.apr.aprbackendassignment.sampleData;
 
 import com.apr.aprbackendassignment.AprBackendAssignmentApplication;
-import com.apr.aprbackendassignment.model.constant.FRIENDSHIP_STATUS;
 import com.apr.aprbackendassignment.model.entity.Friendship;
 import com.apr.aprbackendassignment.model.entity.Users;
 import com.apr.aprbackendassignment.repository.FriendshipJPARepository;
@@ -14,6 +13,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 
 /** Explicit development tool; never discovered or executed by the test task. */
@@ -38,17 +38,18 @@ public final class SampleDataInsert {
             var friendships = context.getBean(FriendshipJPARepository.class);
             var jdbc = context.getBean(JdbcTemplate.class);
             var transactions = new TransactionTemplate(context.getBean(PlatformTransactionManager.class));
+            var clock = context.getBean(Clock.class);
 
             transactions.executeWithoutResult(status -> {
                 Users receiver = users.saveAndFlush(Users.create("sample-receiver"));
-                LocalDateTime now = LocalDateTime.now();
+                LocalDateTime now = LocalDateTime.now(clock);
                 for (int i = 0; i < count; i++) {
                     Users requester = users.saveAndFlush(Users.create("sample-user-" + i));
-                    Friendship friendship = friendships.saveAndFlush(
-                            Friendship.create(requester, receiver, FRIENDSHIP_STATUS.REQUESTED));
                     LocalDateTime requestedAt = now.minusDays(DAYS_AGO[i % DAYS_AGO.length]);
-                    jdbc.update("UPDATE friendship SET created_time = ?, updated_time = ? WHERE id = ?",
-                            requestedAt, requestedAt, friendship.getId());
+                    Friendship friendship = friendships.saveAndFlush(
+                            Friendship.request(requester, receiver, requestedAt));
+                    jdbc.update("UPDATE friendship SET created_time = ?, updated_time = ?, requested_at = ? WHERE id = ?",
+                            requestedAt, requestedAt, requestedAt, friendship.getId());
                 }
                 log.info("Created {} sample requests for receiver ID {}", count, receiver.getId());
             });

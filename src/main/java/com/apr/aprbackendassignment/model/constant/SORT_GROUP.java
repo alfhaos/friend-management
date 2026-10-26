@@ -20,7 +20,7 @@ import java.util.Arrays;
 @Getter
 @AllArgsConstructor
 public enum SORT_GROUP {
-    APPROVEDAT("createdTime"),
+    APPROVEDAT("approvedAt"),
     REQUESTEDAT("effectiveRequestedAt");
 
     private final String fieldName;

@@ -1,8 +1,7 @@
 # 단계별 리팩토링 계획
 
-기준: `BACKEND_QUALITY_REVIEW.md` 20절. 현재 체크포인트는 실행 체계 구성과 1번 구현
-보존·재검증이다. **2번 구현과 전체 검증은 완료됐고 최종 staged tree 독립 리뷰와
-게시를 기다린다. 3~6번은 미완료다.** 아래 표는 단계별 계약이며
+기준: `BACKEND_QUALITY_REVIEW.md` 20절. **1~2번은 게시됐고 3번의 구현·전체 검증·
+독립 리뷰가 완료됐다. 4~6번은 미완료다.** 아래 표는 단계별 계약이며
 완료 보고가 아니다. 상태의 기계 판독 기준은 `STATE.json`, 근거는 실제 검증/리뷰 기록이다.
 
 경로는 `src/main/java/com/apr/aprbackendassignment/`를 기준으로 적는다. 소유권은 단계가
@@ -29,9 +28,9 @@
 요청 제한 메서드 단독 실행이 성공했다. 이번 설정 변경 이후 검증은 별도로 실행한다.
 
 수락/거절 경쟁, 친구 수 상한 경쟁, 재신청, 시간 경계·기본 1초 제한 창의 만료는 후속 범위다.
-현재 `listsOnlyCurrentUsersAcceptedFriendsInCreatedTimeOrder`는 `createdTime` 기반 동작을
-검증하므로 실제 수락시각 정렬 완료의 근거가 아니다. 3번에서는 신청순서와 수락순서가
-반대인 fixture로 업무 시각 기준을 검증해야 한다.
+기존 `createdTime` 기반 정렬 테스트는 실제 수락 시각의 근거가 아니었다. 3번에서는
+신청 순서와 수락 순서를 반대로 만든 PostgreSQL fixture로 `approvedAt` 응답과 정렬을
+검증했다. 해당 검증의 실행 결과는 `STATE.json`에 기록한다.
 
 ## DDD 책임과 과설계 방지
 
