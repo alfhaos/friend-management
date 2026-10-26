@@ -1,4 +1,4 @@
-# Project-scoped agent coordination; inherit model, permissions, and tools.
+# Project-scoped agent coordination; role files set models and reasoning effort.
 approval_policy = "never"
 sandbox_mode = "danger-full-access"
 [agents]
