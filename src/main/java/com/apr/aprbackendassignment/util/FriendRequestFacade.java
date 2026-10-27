@@ -1,8 +1,7 @@
 package com.apr.aprbackendassignment.util;
 
-import com.apr.aprbackendassignment.common.exception.CommException;
-import com.apr.aprbackendassignment.common.response.CommResponseStatus;
-import com.apr.aprbackendassignment.model.dto.request.FriendRequest;
+import com.apr.aprbackendassignment.common.exception.FriendshipError;
+import com.apr.aprbackendassignment.common.exception.FriendshipException;
 import com.apr.aprbackendassignment.service.FriendService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,27 +30,27 @@ public class FriendRequestFacade {
     private final RedisLockUtil redisLockUtil;
     private final FriendService friendService;
 
-    public void requestFriend(Long currentUserId, FriendRequest friendRequest) {
+    public void requestFriend(Long currentUserId, Long targetUserId) {
         RLock lock = null;
         boolean acquired = false;
 
         try {
             try {
-                lock = redisLockUtil.getLock(currentUserId, friendRequest.getTargetUserId());
+                lock = redisLockUtil.getLock(currentUserId, targetUserId);
                 acquired = lock.tryLock(5, 10, TimeUnit.SECONDS);
             } catch (RedisException | RedisConnectionFailureException e) {
                 log.warn("Redis lock unavailable; database constraints will protect friend request", e);
-                friendService.requestFriend(currentUserId, friendRequest);
+                friendService.requestFriend(currentUserId, targetUserId);
                 return;
             }
 
             if (!acquired) {
-                throw new CommException(CommResponseStatus.CONCURRENT_FRIEND_REQUEST);
+                throw new FriendshipException(FriendshipError.CONCURRENT_FRIEND_REQUEST);
             }
-            friendService.requestFriend(currentUserId, friendRequest);
+            friendService.requestFriend(currentUserId, targetUserId);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new CommException(CommResponseStatus.LOCK_INTERRUPTED);
+            throw new FriendshipException(FriendshipError.LOCK_INTERRUPTED);
         } finally {
             if (acquired) {
                 try {

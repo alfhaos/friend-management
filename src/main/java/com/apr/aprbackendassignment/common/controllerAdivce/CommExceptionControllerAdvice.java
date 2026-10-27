@@ -1,6 +1,9 @@
 package com.apr.aprbackendassignment.common.controllerAdivce;
 
 import com.apr.aprbackendassignment.common.exception.CommException;
+import com.apr.aprbackendassignment.common.exception.FriendshipError;
+import com.apr.aprbackendassignment.common.exception.FriendshipException;
+import com.apr.aprbackendassignment.common.exception.InvalidRequestException;
 import com.apr.aprbackendassignment.common.response.CommResponse;
 import com.apr.aprbackendassignment.common.response.CommResponseStatus;
 import lombok.extern.slf4j.Slf4j;
@@ -12,8 +15,12 @@ import org.springframework.dao.QueryTimeoutException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.BindException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.transaction.CannotCreateTransactionException;
 
@@ -44,11 +51,21 @@ public class CommExceptionControllerAdvice {
                 .body(CommResponse.error(status));
     }
 
+    @ExceptionHandler(FriendshipException.class)
+    public ResponseEntity<CommResponse<?>> handleFriendshipException(FriendshipException e) {
+        return error(toResponseStatus(e.getError()));
+    }
+
     // 잘못된 파라미터
     @ExceptionHandler({
+            InvalidRequestException.class,
             HttpMessageNotReadableException.class,
             MethodArgumentTypeMismatchException.class,
-            IllegalArgumentException.class
+            MethodArgumentNotValidException.class,
+            HandlerMethodValidationException.class,
+            ServletRequestBindingException.class,
+            BindException.class,
+            jakarta.validation.ConstraintViolationException.class
     })
     public ResponseEntity<CommResponse<?>> handleParamException(Exception e) {
 
@@ -83,6 +100,22 @@ public class CommExceptionControllerAdvice {
 
     private ResponseEntity<CommResponse<?>> error(CommResponseStatus status) {
         return ResponseEntity.status(status.getHttpStatus()).body(CommResponse.error(status));
+    }
+
+    private CommResponseStatus toResponseStatus(FriendshipError error) {
+        return switch (error) {
+            case NOT_FOUND_USER -> CommResponseStatus.NOT_FOUND_USER;
+            case SELF_FRIEND_REQUEST -> CommResponseStatus.SELF_FRIEND_REQUEST;
+            case ALREADY_REQUESTED_FRIEND -> CommResponseStatus.ALREADY_REQUESTED_FRIEND;
+            case NOT_FOUND_FRIENDSHIP -> CommResponseStatus.NOT_FOUND_FRIENDSHIP;
+            case REQUEST_STATUS_ERROR -> CommResponseStatus.REQUEST_STATUS_ERROR;
+            case FRIEND_LIMIT_EXCEEDED_FOR_ACCEPTOR -> CommResponseStatus.FRIEND_LIMIT_EXCEEDED_FOR_ACCEPTOR;
+            case FRIEND_LIMIT_EXCEEDED_REQUESTER -> CommResponseStatus.FRIEND_LIMIT_EXCEEDED_REQUESTER;
+            case ALREADY_RREQUESTED_FRIENDSHIP -> CommResponseStatus.ALREADY_RREQUESTED_FRIENDSHIP;
+            case ONLY_RECEIVER_CAN_PROCESS -> CommResponseStatus.ONLY_RECEIVER_CAN_PROCESS;
+            case CONCURRENT_FRIEND_REQUEST -> CommResponseStatus.CONCURRENT_FRIEND_REQUEST;
+            case LOCK_INTERRUPTED -> CommResponseStatus.LOCK_INTERRUPTED;
+        };
     }
 
     private boolean isUniqueConflict(Throwable error) {

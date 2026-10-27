@@ -1,11 +1,11 @@
 package com.apr.aprbackendassignment.service.impl;
 
-import com.apr.aprbackendassignment.common.exception.CommException;
+import com.apr.aprbackendassignment.common.exception.FriendshipError;
+import com.apr.aprbackendassignment.common.exception.FriendshipException;
 import com.apr.aprbackendassignment.common.request.PageRequestParam;
 import com.apr.aprbackendassignment.common.response.CommResponseStatus;
 import com.apr.aprbackendassignment.model.constant.FRIENDSHIP_STATUS;
 import com.apr.aprbackendassignment.model.constant.WINDOW_SLIDING;
-import com.apr.aprbackendassignment.model.dto.request.FriendRequest;
 import com.apr.aprbackendassignment.model.dto.response.FriendsRequestsResponse;
 import com.apr.aprbackendassignment.model.dto.response.FriendsResponse;
 import com.apr.aprbackendassignment.model.entity.Friendship;
@@ -135,7 +135,7 @@ class FriendServiceImplTest extends IntegrationTestSupport {
         Users requester = fixture.user("requester");
         Users receiver = fixture.user("receiver");
 
-        facade.requestFriend(requester.getId(), new FriendRequest(receiver.getId()));
+        facade.requestFriend(requester.getId(), receiver.getId());
 
         // A separate repository transaction observes the commit; no test transaction surrounds the Facade.
         Friendship saved = friendships.findByRequesterIdAndReceiverId(requester.getId(), receiver.getId());
@@ -150,8 +150,8 @@ class FriendServiceImplTest extends IntegrationTestSupport {
     @Test
     void rejectsSelfRequestWithoutCreatingRelationship() {
         Users requester = fixture.user("requester");
-        assertFailure(() -> facade.requestFriend(requester.getId(), new FriendRequest(requester.getId())),
-                CommResponseStatus.SELF_FRIEND_REQUEST);
+        assertFailure(() -> facade.requestFriend(requester.getId(), requester.getId()),
+                FriendshipError.SELF_FRIEND_REQUEST);
         assertThat(friendships.count()).isZero();
     }
 
@@ -160,8 +160,8 @@ class FriendServiceImplTest extends IntegrationTestSupport {
         Users requester = fixture.user("requester");
         Users removed = fixture.user("removed");
         users.deleteById(removed.getId());
-        assertFailure(() -> facade.requestFriend(requester.getId(), new FriendRequest(removed.getId())),
-                CommResponseStatus.NOT_FOUND_USER);
+        assertFailure(() -> facade.requestFriend(requester.getId(), removed.getId()),
+                FriendshipError.NOT_FOUND_USER);
         assertThat(friendships.count()).isZero();
     }
 
@@ -170,8 +170,8 @@ class FriendServiceImplTest extends IntegrationTestSupport {
         Users requester = fixture.user("requester");
         Users receiver = fixture.user("receiver");
         Friendship original = fixture.relationship(requester, receiver, REQUESTED);
-        assertFailure(() -> facade.requestFriend(receiver.getId(), new FriendRequest(requester.getId())),
-                CommResponseStatus.ALREADY_RREQUESTED_FRIENDSHIP);
+        assertFailure(() -> facade.requestFriend(receiver.getId(), requester.getId()),
+                FriendshipError.ALREADY_RREQUESTED_FRIENDSHIP);
         assertThat(friendships.count()).isEqualTo(1);
         assertThat(reload(original).getStatus()).isEqualTo(REQUESTED);
     }
@@ -184,7 +184,7 @@ class FriendServiceImplTest extends IntegrationTestSupport {
         Friendship rejected = fixture.relationship(requester, receiver, REJECTED);
         Friendship untouched = fixture.relationship(requester, unrelated, REJECTED);
 
-        facade.requestFriend(requester.getId(), new FriendRequest(receiver.getId()));
+        facade.requestFriend(requester.getId(), receiver.getId());
 
         Friendship reused = friendships.findByRequesterIdAndReceiverId(requester.getId(), receiver.getId());
         assertThat(reused.getId()).isEqualTo(rejected.getId());
@@ -206,7 +206,7 @@ class FriendServiceImplTest extends IntegrationTestSupport {
         Friendship earlierToday = fixture.relationshipAt(earlierRequester, receiver, REQUESTED,
                 LocalDateTime.now().toLocalDate().atStartOfDay());
 
-        facade.requestFriend(requester.getId(), new FriendRequest(receiver.getId()));
+        facade.requestFriend(requester.getId(), receiver.getId());
 
         Friendship reused = friendships.findByRequesterIdAndReceiverId(requester.getId(), receiver.getId());
         assertThat(reused.getId()).isEqualTo(rejected.getId());
@@ -232,7 +232,7 @@ class FriendServiceImplTest extends IntegrationTestSupport {
         Users second = fixture.user("second");
         Friendship rejected = fixture.relationship(first, second, REJECTED);
 
-        facade.requestFriend(second.getId(), new FriendRequest(first.getId()));
+        facade.requestFriend(second.getId(), first.getId());
 
         Friendship reverse = friendships.findByRequesterIdAndReceiverId(second.getId(), first.getId());
         assertThat(reverse.getId()).isNotEqualTo(rejected.getId());
@@ -242,8 +242,8 @@ class FriendServiceImplTest extends IntegrationTestSupport {
         assertThat(reload(rejected).getStatus()).isEqualTo(REJECTED);
         assertThat(friendships.count()).isEqualTo(2);
 
-        assertFailure(() -> facade.requestFriend(second.getId(), new FriendRequest(first.getId())),
-                CommResponseStatus.ALREADY_RREQUESTED_FRIENDSHIP);
+        assertFailure(() -> facade.requestFriend(second.getId(), first.getId()),
+                FriendshipError.ALREADY_RREQUESTED_FRIENDSHIP);
         assertThat(friendships.count()).isEqualTo(2);
     }
 
@@ -254,7 +254,7 @@ class FriendServiceImplTest extends IntegrationTestSupport {
         Friendship pending = fixture.relationship(requester, receiver, REQUESTED);
         LocalDateTime requestedAt = reload(pending).getRequestedAt();
         LocalDateTime before = LocalDateTime.now().minusSeconds(1);
-        friendService.requestAccept(receiver.getId(), pending.getId().toString());
+        friendService.requestAccept(receiver.getId(), pending.getId());
         LocalDateTime after = LocalDateTime.now().plusSeconds(1);
         Friendship accepted = reload(pending);
         assertThat(accepted.getStatus()).isEqualTo(ACCEPTED);
@@ -269,7 +269,7 @@ class FriendServiceImplTest extends IntegrationTestSupport {
         Users requester = fixture.user("requester");
         Users receiver = fixture.user("receiver");
         Friendship pending = fixture.relationship(requester, receiver, REQUESTED);
-        friendService.requestReject(receiver.getId(), pending.getId().toString());
+        friendService.requestReject(receiver.getId(), pending.getId());
         assertThat(reload(pending).getStatus()).isEqualTo(REJECTED);
         assertThat(reload(pending).getApprovedAt()).isNull();
         assertThat(friendships.countUsersFriends(requester.getId(), ACCEPTED)).isZero();
@@ -282,10 +282,10 @@ class FriendServiceImplTest extends IntegrationTestSupport {
         Users receiver = fixture.user("receiver");
         Users outsider = fixture.user("outsider");
         Friendship pending = fixture.relationship(requester, receiver, REQUESTED);
-        assertFailure(() -> friendService.requestAccept(outsider.getId(), pending.getId().toString()),
-                CommResponseStatus.ONLY_RECEIVER_CAN_PROCESS);
-        assertFailure(() -> friendService.requestReject(outsider.getId(), pending.getId().toString()),
-                CommResponseStatus.ONLY_RECEIVER_CAN_PROCESS);
+        assertFailure(() -> friendService.requestAccept(outsider.getId(), pending.getId()),
+                FriendshipError.ONLY_RECEIVER_CAN_PROCESS);
+        assertFailure(() -> friendService.requestReject(outsider.getId(), pending.getId()),
+                FriendshipError.ONLY_RECEIVER_CAN_PROCESS);
         assertThat(reload(pending).getStatus()).isEqualTo(REQUESTED);
     }
 
@@ -295,10 +295,10 @@ class FriendServiceImplTest extends IntegrationTestSupport {
         Users requester = fixture.user("requester");
         Users receiver = fixture.user("receiver");
         Friendship completed = fixture.relationship(requester, receiver, status);
-        assertFailure(() -> friendService.requestAccept(receiver.getId(), completed.getId().toString()),
-                CommResponseStatus.REQUEST_STATUS_ERROR);
-        assertFailure(() -> friendService.requestReject(receiver.getId(), completed.getId().toString()),
-                CommResponseStatus.REQUEST_STATUS_ERROR);
+        assertFailure(() -> friendService.requestAccept(receiver.getId(), completed.getId()),
+                FriendshipError.REQUEST_STATUS_ERROR);
+        assertFailure(() -> friendService.requestReject(receiver.getId(), completed.getId()),
+                FriendshipError.REQUEST_STATUS_ERROR);
         assertThat(reload(completed).getStatus()).isEqualTo(status);
     }
 
@@ -342,10 +342,10 @@ class FriendServiceImplTest extends IntegrationTestSupport {
             throw new IllegalStateException("Start signal timed out");
         }
         try {
-            facade.requestFriend(requester.getId(), new FriendRequest(receiver.getId()));
+            facade.requestFriend(requester.getId(), receiver.getId());
             return CommResponseStatus.SUCCESS;
-        } catch (CommException exception) {
-            return exception.getStatus();
+        } catch (FriendshipException exception) {
+            return CommResponseStatus.valueOf(exception.getError().name());
         }
     }
 
@@ -360,8 +360,8 @@ class FriendServiceImplTest extends IntegrationTestSupport {
         return friendships.findById(relationship.getId()).orElseThrow();
     }
 
-    private void assertFailure(Runnable action, CommResponseStatus status) {
-        assertThatThrownBy(action::run).isInstanceOfSatisfying(CommException.class,
-                exception -> assertThat(exception.getStatus()).isEqualTo(status));
+    private void assertFailure(Runnable action, FriendshipError error) {
+        assertThatThrownBy(action::run).isInstanceOfSatisfying(FriendshipException.class,
+                exception -> assertThat(exception.getError()).isEqualTo(error));
     }
 }

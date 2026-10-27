@@ -1,7 +1,6 @@
 package com.apr.aprbackendassignment.service.impl;
 
-import com.apr.aprbackendassignment.common.exception.CommException;
-import com.apr.aprbackendassignment.model.dto.request.FriendRequest;
+import com.apr.aprbackendassignment.common.exception.FriendshipException;
 import com.apr.aprbackendassignment.model.entity.Users;
 import com.apr.aprbackendassignment.support.ConcurrentResults;
 import com.apr.aprbackendassignment.support.IntegrationTestSupport;
@@ -62,10 +61,10 @@ class FriendRequestRedisFallbackTest extends IntegrationTestSupport {
             throw new IllegalStateException("Start signal timed out");
         }
         try {
-            facade.requestFriend(requester.getId(), new FriendRequest(receiver.getId()));
+            facade.requestFriend(requester.getId(), receiver.getId());
             return "SUCCESS";
-        } catch (CommException exception) {
-            return exception.getStatus().getCode();
+        } catch (FriendshipException exception) {
+            return exception.getError().name();
         }
     }
 }

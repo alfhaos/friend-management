@@ -1,5 +1,6 @@
 package com.apr.aprbackendassignment.common.interceptor;
 
+import com.apr.aprbackendassignment.common.exception.InvalidRequestException;
 import com.apr.aprbackendassignment.common.response.CommResponse;
 import com.apr.aprbackendassignment.common.response.CommResponseStatus;
 import com.apr.aprbackendassignment.util.LimitProperties;
@@ -51,8 +52,17 @@ public class LimitInterceptor implements HandlerInterceptor {
         String userId = request.getHeader(X_USER_ID_HEADER);
         if (userId == null) return true;
 
-        boolean allowed =
-                limiter.allow(Long.valueOf(userId));
+        long parsedUserId;
+        try {
+            parsedUserId = Long.parseLong(userId);
+        } catch (NumberFormatException e) {
+            throw new InvalidRequestException(e);
+        }
+        if (parsedUserId <= 0) {
+            throw new InvalidRequestException();
+        }
+
+        boolean allowed = limiter.allow(parsedUserId);
 
         if (!allowed) {
             response.setStatus(CommResponseStatus.TOO_MANY_REQUEST.getHttpStatus().value());

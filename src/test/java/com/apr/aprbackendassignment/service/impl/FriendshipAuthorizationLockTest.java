@@ -1,6 +1,6 @@
 package com.apr.aprbackendassignment.service.impl;
 
-import com.apr.aprbackendassignment.common.exception.CommException;
+import com.apr.aprbackendassignment.common.exception.FriendshipException;
 import com.apr.aprbackendassignment.common.response.CommResponseStatus;
 import com.apr.aprbackendassignment.model.entity.Friendship;
 import com.apr.aprbackendassignment.model.entity.Users;
@@ -55,13 +55,13 @@ class FriendshipAuthorizationLockTest extends IntegrationTestSupport {
             var denied = executor.submit(() -> {
                 try {
                     if (accept) {
-                        friendService.requestAccept(outsider.getId(), pending.getId().toString());
+                        friendService.requestAccept(outsider.getId(), pending.getId());
                     } else {
-                        friendService.requestReject(outsider.getId(), pending.getId().toString());
+                        friendService.requestReject(outsider.getId(), pending.getId());
                     }
                     return CommResponseStatus.SUCCESS;
-                } catch (CommException error) {
-                    return error.getStatus();
+                } catch (FriendshipException error) {
+                    return CommResponseStatus.valueOf(error.getError().name());
                 }
             });
             assertThat(denied.get(2, TimeUnit.SECONDS))

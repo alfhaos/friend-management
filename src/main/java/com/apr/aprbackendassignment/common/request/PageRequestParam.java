@@ -1,7 +1,6 @@
 package com.apr.aprbackendassignment.common.request;
 
-import com.apr.aprbackendassignment.common.exception.CommException;
-import com.apr.aprbackendassignment.common.response.CommResponseStatus;
+import com.apr.aprbackendassignment.common.exception.InvalidRequestException;
 import com.apr.aprbackendassignment.model.constant.SORT_GROUP;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -46,8 +45,14 @@ public class PageRequestParam {
     private String sort;
     public Pageable toPageable() {
 
+        if (sort == null) {
+            throw new InvalidRequestException();
+        }
         try {
-            String[] sortInfo = sort.split(DELIMITER);
+            String[] sortInfo = sort.split(DELIMITER, -1);
+            if (sortInfo.length != 2 || sortInfo[0].isBlank() || sortInfo[1].isBlank()) {
+                throw new InvalidRequestException();
+            }
             String sortField = sortInfo[0];
             String sortDirection = sortInfo[1];
 
@@ -58,8 +63,10 @@ public class PageRequestParam {
                     Sort.Direction.fromString(sortDirection);
 
             return PageRequest.of(page, maxSize, Sort.by(direction, fieldName));
-        } catch (Exception e) {
-            throw new CommException(CommResponseStatus.BAD_REQUEST);
+        } catch (InvalidRequestException e) {
+            throw e;
+        } catch (IllegalArgumentException e) {
+            throw new InvalidRequestException(e);
         }
 
     }

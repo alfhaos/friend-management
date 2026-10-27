@@ -2,9 +2,29 @@
   "schemaVersion": 1,
   "branch": "refactor/backend-quality",
   "sourcePlan": "BACKEND_QUALITY_REVIEW.md#20",
-  "activeScope": "step-3-checkpoint",
+  "activeScope": "step-4-checkpoint",
   "pendingDecisions": [],
   "resolvedDecisions": [
+    {
+      "id": "S4-REVIEW-01-APPROVAL",
+      "decision": "LimitInterceptor.java에서 신청 API의 잘못된 X-user-Id를 공통 400 BAD_REQUEST로 처리하되 유효한 양수 ID의 요청 제한과 429는 유지하는 프로덕션 수정 승인",
+      "source": "2026-10-27 사용자 직접 답변: 승인할게"
+    },
+    {
+      "id": "S4-001",
+      "decision": "누락·잘못된 헤더/쿼리/본문과 Bean Validation 실패를 공통 400 BAD_REQUEST로 통일하고 기존 업무 오류는 유지",
+      "source": "2026-10-27 사용자 직접 답변: 세 권장안 제시 후 '마저 진행해'"
+    },
+    {
+      "id": "S4-PROD-APPROVAL",
+      "decision": "STEP4-PREPARATION.md에 제시한 프로덕션 파일·예상 동작의 생성·수정 승인",
+      "source": "2026-10-27 사용자 직접 답변: 세 권장안 제시 후 '마저 진행해'"
+    },
+    {
+      "id": "S4-002",
+      "decision": "4번 구현·전체 검증·독립 리뷰 후 step-4-checkpoint 범위로 전용 브랜치에 commit/push",
+      "source": "2026-10-27 사용자 직접 답변: 세 권장안 제시 후 '마저 진행해'"
+    },
     {
       "id": "S3-001",
       "decision": "공개 approvedAt 필드·정렬 키 이름은 유지하고 응답값·정렬 기준을 실제 수락 시각으로 변경",
@@ -86,8 +106,8 @@
       "source": "2026-10-22 사용자 직접 답변"
     }
   ],
-  "checkpointStatus": "step-3-implementation-complete",
-  "currentStep": 3,
+  "checkpointStatus": "step-4-complete-awaiting-staged-review-and-publication",
+  "currentStep": 4,
   "steps": [
     {
       "number": 1,
@@ -96,17 +116,17 @@
     },
     { "number": 2, "status": "complete", "evidence": "2026-10-26 commit 1216e12 published to origin/refactor/backend-quality after final review and validation; 54 tests, 0 failures, 0 skipped" },
     { "number": 3, "status": "complete", "evidence": "2026-10-26 staged core step-3 implementation independently approved by code and security reviewers; lint test sampleDataClasses exit 0; 63 tests, 0 failures, 0 skipped" },
-    { "number": 4, "status": "pending" },
+    { "number": 4, "status": "complete", "evidence": "2026-10-27 final worktree lint test sampleDataClasses exit 0, 74 tests across 17 suites with no failures/errors/skips; independent code and security re-reviews have zero required findings; exact staged-tree publication review remains" },
     { "number": 5, "status": "pending" },
     { "number": 6, "status": "pending" }
   ],
   "maxParallelImplementers": 2,
   "noProgressLimit": 3,
   "publicationAuthorized": true,
-  "publicationScope": "step-3-checkpoint",
+  "publicationScope": "step-4-checkpoint",
   "publicationAttestation": "git-path:refactor-review.json",
   "openRequiredFindings": [],
-  "reviewStatus": "step-3-core-code-and-security-approved",
+  "reviewStatus": "step-4-worktree-code-and-security-approved-staged-review-pending",
   "currentValidation": [
     {
       "command": ".\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache",
@@ -207,12 +227,62 @@
       "command": "powershell -NoProfile -File scripts/test-git-hook.ps1",
       "exitCode": 0,
       "result": "2026-10-26; hook and publication gate smoke test passed; step-2 and step-3 incomplete attestation cases rejected"
+    },
+    {
+      "command": ".\\gradlew.bat test --tests \"com.apr.aprbackendassignment.controller.*\" --rerun-tasks --no-build-cache",
+      "exitCode": 0,
+      "result": "2026-10-26; unchanged step-3 HEAD 8064337 baseline, 4 controller suites and 15 tests, 0 failures, 0 errors, 0 skipped; step-4 input error gaps not yet covered"
+    },
+    {
+      "command": ".\\gradlew.bat test --tests com.apr.aprbackendassignment.controller.FriendInputAndBusinessApiTest --rerun-tasks --no-build-cache",
+      "exitCode": 0,
+      "result": "2026-10-26; step-3 HEAD 8064337 production plus step-4 test-only worktree, 7 tests including 8 input error baseline observations, 0 failures, 0 errors, 0 skipped; not the final step-4 implementation"
+    },
+    {
+      "command": "powershell -NoProfile -File scripts/test-git-hook.ps1",
+      "exitCode": 0,
+      "result": "2026-10-27; step-4 checkpoint gate smoke test rejects incomplete [1,2,3] attestation and retains lint/pending-decision checks"
+    },
+    {
+      "command": ".\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache",
+      "exitCode": 0,
+      "result": "2026-10-27; step-4 worktree before narrow PageRequestParam catch repair, 70 tests across 17 suites, 0 failures, 0 errors, 0 skipped; 9 tasks executed; final review pending"
+    },
+    {
+      "command": ".\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache",
+      "exitCode": 0,
+      "result": "2026-10-27; step-4 worktree after final PageRequestParam and test changes, 70 tests across 17 suites, 0 failures, 0 errors, 0 skipped; 9 tasks executed; exact staged-tree review and publication gate remain"
+    },
+    {
+      "command": ".\\gradlew.bat test --tests com.apr.aprbackendassignment.controller.FriendInputAndBusinessApiTest.invalidHeadersAndRequestInputsReturnBadRequestWithoutWriting --tests com.apr.aprbackendassignment.controller.FriendInputAndBusinessApiTest.malformedRequestHeaderIsBadRequestBeforeRateLimitAndDoesNotWrite --rerun-tasks --no-build-cache",
+      "exitCode": 1,
+      "result": "2026-10-27; targeted reviewer regression, Gradle reports 3 tests, 2 failures: malformed abc and overflow X-user-Id on POST /api/friends/request; other invalid input method including zero header passed"
+    },
+    {
+      "command": ".\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache",
+      "exitCode": 0,
+      "result": "2026-10-27; main worktree after approved LimitInterceptor repair, 72 tests across 17 suites, 0 failures, 0 errors, 0 skipped; 9 tasks executed; exact staged-tree review and publication gate remain"
+    },
+    {
+      "command": "powershell -NoProfile -File scripts/test-git-hook.ps1",
+      "exitCode": 0,
+      "result": "2026-10-27; smoke test rejects failed lint, pending decisions, and incomplete step-2/step-3/step-4 attestations; not final staged-tree review"
+    },
+    {
+      "command": ".\\gradlew.bat test --tests com.apr.aprbackendassignment.controller.FriendInputAndBusinessApiTest --rerun-tasks --no-build-cache",
+      "exitCode": 1,
+      "result": "2026-10-27; new repeated nonpositive header regression: 11 tests, 2 failures, both 0 and -1 X-user-Id returned 429 on 11th POST after ten 400 responses; second interceptor fix pending"
+    },
+    {
+      "command": ".\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache",
+      "exitCode": 0,
+      "result": "2026-10-27; final step-4 worktree after second interceptor fix, 74 tests across 17 suites, 0 failures, 0 errors, 0 skipped; 9 tasks executed; code and security independent re-reviews found zero required findings; exact staged-tree review and publication gate remain"
     }
   ],
   "notes": [
     "Step 2 was published in commit 1216e12; step 3 contract and production scope were approved on 2026-10-26. Step 3 implementation, validation, and core code/security reviews are complete.",
     "Prior WIP transfer is historical and did not itself complete step 2.",
-    "Step 3 checkpoint scope is [1,2,3]. The final publication tree including updated gate documentation requires independent review; steps 4 through 6 remain pending.",
+    "Step 3 was published in commit 8064337. Step 4 input-error policy, initial production files, publication scope, and the LimitInterceptor review repair were accepted on 2026-10-27. Both interceptor review findings were fixed; full worktree validation and independent code/security re-reviews passed. Exact staged-tree review and publication remain. Steps 5 and 6 remain pending.",
     "Final independent review must approve the exact staged tree; never store the attested tree hash inside this tracked file."
   ]
 }

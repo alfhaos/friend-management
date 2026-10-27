@@ -1,7 +1,7 @@
 # 목표 시스템
 친구 관리 시스템 구축
 
-> **리팩토링 진행 상태 (2026-10-26):** 1~2번은 `refactor/backend-quality` 브랜치에 게시했고, 3번은 구현·검증·독립 리뷰를 완료했습니다. 4~6번은 미완료입니다. 현재 상태와 사용자 결정은 [상태 기록](agent-context/STATE.json)과 [결정 기록](agent-context/DECISIONS.md)을 참조하세요.
+> **리팩토링 진행 상태 (2026-10-27):** 1~3번은 `refactor/backend-quality` 브랜치에 게시했고, 4번은 구현·검증·작업 트리 독립 재리뷰를 마쳤습니다. 5~6번은 미완료입니다. 현재 상태와 사용자 결정은 [상태 기록](agent-context/STATE.json)과 [결정 기록](agent-context/DECISIONS.md)을 참조하세요.
 
 사용자 인증 기능이 없기에 목록 조회 API는 기본적으로 사용자 아이디 (1L)을 기준으로 조회합니다.
 
@@ -72,7 +72,23 @@
   - 요청 헤더 `X-user-Id`는 수신자여야 하며, 본인 수신 요청만 처리 가능합니다.
   - REQUESTED 상태에서만 거절 가능하며, 거절 시 상태가 REJECTED로 변경됩니다.
 
-- DB 자체 장애나 잠금 대기 실패는 HTTP 503과 `DATABASE_UNAVAILABLE` 코드로 응답합니다. 409·503 오류도 기존 공통 응답 형식의 `status`, `code`, `message` 필드를 사용합니다.
+### 오류 응답 규약
+
+모든 오류 응답은 기존 공통 형식의 `status`, `code`, `message`를 사용합니다.
+
+- 필수 `X-user-Id` 헤더의 누락·형식 오류·0 이하 값, 필수 쿼리 파라미터 누락·형식 오류,
+  잘못된 정렬·페이지 값, 잘못된 UUID, JSON 본문 오류와 필수·양수 값 검증 실패는 HTTP 400 및
+  `BAD_REQUEST`로 응답합니다. 메시지는 `잘못된 요청입니다.`입니다.
+- 요청 수신자가 아닌 사용자의 수락·거절은 HTTP 403 `ONLY_RECEIVER_CAN_PROCESS`로 응답합니다.
+  이미 처리된 요청의 수락·거절은 HTTP 400 `REQUEST_STATUS_ERROR`로 응답합니다.
+- 활성 친구 요청의 DB 유일 제약 충돌은 HTTP 409 `FRIEND_REQUEST_CONFLICT`로 응답합니다.
+  Redis 락을 얻지 못해 같은 요청이 처리 중이면 HTTP 423 `CONCURRENT_FRIEND_REQUEST`로 응답합니다.
+- DB 자체 장애나 잠금 대기 실패는 HTTP 503 `DATABASE_UNAVAILABLE`로 응답합니다. 서버 오류의
+  공개 메시지는 `서버에 문제가 생겼습니다. 잠시 후 다시 시도해주세요.`로 통일합니다.
+
+이 오류 규약은 [FriendController](src/main/java/com/apr/aprbackendassignment/controller/FriendController.java),
+[CommExceptionControllerAdvice](src/main/java/com/apr/aprbackendassignment/common/controllerAdivce/CommExceptionControllerAdvice.java),
+그리고 사용자 결정 기록의 `S4-001`에 근거합니다.
 
 ## 🛠 실행 방법
 

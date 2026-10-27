@@ -1,7 +1,6 @@
 package com.apr.aprbackendassignment.model.constant;
 
-import com.apr.aprbackendassignment.common.exception.CommException;
-import com.apr.aprbackendassignment.common.response.CommResponseStatus;
+import com.apr.aprbackendassignment.common.exception.InvalidRequestException;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -37,7 +36,7 @@ public enum WINDOW_SLIDING {
                 .filter(v -> v.code.equalsIgnoreCase(code))
                 .findFirst()
                 .orElseThrow(() ->
-                        new CommException(CommResponseStatus.BAD_REQUEST));
+                        new InvalidRequestException());
     }
 
     public LocalDateTime calculateTimeWindow(LocalDateTime now) {

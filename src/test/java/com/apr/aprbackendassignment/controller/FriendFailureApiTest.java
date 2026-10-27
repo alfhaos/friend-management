@@ -35,7 +35,7 @@ class FriendFailureApiTest extends IntegrationTestSupport {
         SQLException cause = new SQLException(
                 "duplicate key value violates unique constraint \"ux_other_table\"", "23505");
         doThrow(new DataIntegrityViolationException("unrelated unique conflict", cause))
-                .when(facade).requestFriend(anyLong(), any(FriendRequest.class));
+                .when(facade).requestFriend(anyLong(), anyLong());
 
         mockMvc.perform(request(requester, receiver))
                 .andExpect(status().isInternalServerError())
@@ -50,7 +50,7 @@ class FriendFailureApiTest extends IntegrationTestSupport {
         SQLException cause = new SQLException("duplicate key", "23505");
         doThrow(new DataIntegrityViolationException("unrelated unique conflict",
                 new ConstraintViolationException("unrelated unique conflict", cause, "ux_other_table")))
-                .when(facade).requestFriend(anyLong(), any(FriendRequest.class));
+                .when(facade).requestFriend(anyLong(), anyLong());
 
         mockMvc.perform(request(requester, receiver))
                 .andExpect(status().isInternalServerError())
@@ -76,7 +76,7 @@ class FriendFailureApiTest extends IntegrationTestSupport {
                 "duplicate key value violates unique constraint \"ux_friendship_active_pair\"", "23505");
         doThrow(new DataIntegrityViolationException("active pair conflict",
                 new ConstraintViolationException("active pair conflict", cause, "ux_friendship_active_pair")))
-                .when(facade).requestFriend(anyLong(), any(FriendRequest.class));
+                .when(facade).requestFriend(anyLong(), anyLong());
 
         mockMvc.perform(request(requester, receiver))
                 .andExpect(status().isConflict())
@@ -95,7 +95,7 @@ class FriendFailureApiTest extends IntegrationTestSupport {
         doThrow(new DataIntegrityViolationException("directional pair conflict",
                 new ConstraintViolationException("directional pair conflict", cause,
                         "friendship_requester_id_receiver_id_key")))
-                .when(facade).requestFriend(anyLong(), any(FriendRequest.class));
+                .when(facade).requestFriend(anyLong(), anyLong());
 
         mockMvc.perform(request(requester, receiver))
                 .andExpect(status().isConflict())
@@ -113,7 +113,7 @@ class FriendFailureApiTest extends IntegrationTestSupport {
         doThrow(new DataIntegrityViolationException("directional pair conflict",
                 new ConstraintViolationException("directional pair conflict", cause,
                         "uk8pnm9rovglqfddxo47d2afm35")))
-                .when(facade).requestFriend(anyLong(), any(FriendRequest.class));
+                .when(facade).requestFriend(anyLong(), anyLong());
 
         mockMvc.perform(request(requester, receiver))
                 .andExpect(status().isConflict())
@@ -126,7 +126,7 @@ class FriendFailureApiTest extends IntegrationTestSupport {
         Users requester = fixture.user("requester");
         Users receiver = fixture.user("receiver");
         doThrow(new DataAccessResourceFailureException("database connection unavailable"))
-                .when(facade).requestFriend(anyLong(), any(FriendRequest.class));
+                .when(facade).requestFriend(anyLong(), anyLong());
 
         mockMvc.perform(request(requester, receiver))
                 .andExpect(status().isServiceUnavailable())
@@ -143,7 +143,7 @@ class FriendFailureApiTest extends IntegrationTestSupport {
         Users receiver = fixture.user("receiver");
         SQLException cause = new SQLException("connection lost", "08006");
         doThrow(new DataIntegrityViolationException("database failed", cause))
-                .when(facade).requestFriend(anyLong(), any(FriendRequest.class));
+                .when(facade).requestFriend(anyLong(), anyLong());
 
         mockMvc.perform(request(requester, receiver))
                 .andExpect(status().isServiceUnavailable())
@@ -159,7 +159,7 @@ class FriendFailureApiTest extends IntegrationTestSupport {
         Users requester = fixture.user("requester");
         Users receiver = fixture.user("receiver");
         doThrow(new IllegalStateException("internal implementation detail"))
-                .when(facade).requestFriend(anyLong(), any(FriendRequest.class));
+                .when(facade).requestFriend(anyLong(), anyLong());
 
         mockMvc.perform(request(requester, receiver))
                 .andExpect(status().isInternalServerError())
@@ -175,7 +175,7 @@ class FriendFailureApiTest extends IntegrationTestSupport {
         Users requester = fixture.user("requester");
         Users receiver = fixture.user("receiver");
         doThrow(new CommException(CommResponseStatus.LOCK_INTERRUPTED))
-                .when(facade).requestFriend(anyLong(), any(FriendRequest.class));
+                .when(facade).requestFriend(anyLong(), anyLong());
 
         mockMvc.perform(request(requester, receiver))
                 .andExpect(status().isInternalServerError())

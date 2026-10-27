@@ -1,8 +1,7 @@
 package com.apr.aprbackendassignment.service.impl;
 
-import com.apr.aprbackendassignment.common.exception.CommException;
+import com.apr.aprbackendassignment.common.exception.FriendshipException;
 import com.apr.aprbackendassignment.common.response.CommResponseStatus;
-import com.apr.aprbackendassignment.model.dto.request.FriendRequest;
 import com.apr.aprbackendassignment.model.entity.Friendship;
 import com.apr.aprbackendassignment.model.entity.Users;
 import com.apr.aprbackendassignment.service.FriendService;
@@ -37,7 +36,7 @@ class FriendshipConcurrencyTest extends IntegrationTestSupport {
         Users requester = fixture.user("requester");
         Users receiver = fixture.user("receiver");
         Callable<CommResponseStatus> request = () -> process(
-                () -> facade.requestFriend(requester.getId(), new FriendRequest(receiver.getId())));
+                () -> facade.requestFriend(requester.getId(), receiver.getId()));
 
         assertThat(race(request, request)).containsExactlyInAnyOrder(
                 CommResponseStatus.SUCCESS, CommResponseStatus.ALREADY_RREQUESTED_FRIENDSHIP);
@@ -53,8 +52,8 @@ class FriendshipConcurrencyTest extends IntegrationTestSupport {
         Friendship original = fixture.relationship(requester, receiver, REQUESTED);
 
         List<CommResponseStatus> outcomes = race(
-                () -> process(() -> friendService.requestReject(receiver.getId(), original.getId().toString())),
-                () -> process(() -> facade.requestFriend(requester.getId(), new FriendRequest(receiver.getId()))));
+                () -> process(() -> friendService.requestReject(receiver.getId(), original.getId())),
+                () -> process(() -> facade.requestFriend(requester.getId(), receiver.getId())));
 
         assertThat(outcomes.get(0)).isEqualTo(CommResponseStatus.SUCCESS);
         assertThat(outcomes.get(1)).isIn(
@@ -73,8 +72,8 @@ class FriendshipConcurrencyTest extends IntegrationTestSupport {
         Friendship pending = fixture.relationship(requester, receiver, REQUESTED);
 
         List<CommResponseStatus> outcomes = race(
-                () -> process(() -> friendService.requestAccept(receiver.getId(), pending.getId().toString())),
-                () -> process(() -> friendService.requestReject(receiver.getId(), pending.getId().toString())));
+                () -> process(() -> friendService.requestAccept(receiver.getId(), pending.getId())),
+                () -> process(() -> friendService.requestReject(receiver.getId(), pending.getId())));
 
         assertThat(outcomes).containsExactlyInAnyOrder(
                 CommResponseStatus.SUCCESS, CommResponseStatus.REQUEST_STATUS_ERROR);
@@ -92,7 +91,7 @@ class FriendshipConcurrencyTest extends IntegrationTestSupport {
         Users receiver = fixture.user("receiver");
         Friendship pending = fixture.relationship(requester, receiver, REQUESTED);
         Callable<CommResponseStatus> accept = () -> process(
-                () -> friendService.requestAccept(receiver.getId(), pending.getId().toString()));
+                () -> friendService.requestAccept(receiver.getId(), pending.getId()));
 
         assertThat(race(accept, accept)).containsExactlyInAnyOrder(
                 CommResponseStatus.SUCCESS, CommResponseStatus.REQUEST_STATUS_ERROR);
@@ -112,8 +111,8 @@ class FriendshipConcurrencyTest extends IntegrationTestSupport {
         Friendship secondPending = fixture.relationship(second, shared, REQUESTED);
 
         List<CommResponseStatus> outcomes = race(
-                () -> process(() -> friendService.requestAccept(shared.getId(), firstPending.getId().toString())),
-                () -> process(() -> friendService.requestAccept(shared.getId(), secondPending.getId().toString())));
+                () -> process(() -> friendService.requestAccept(shared.getId(), firstPending.getId())),
+                () -> process(() -> friendService.requestAccept(shared.getId(), secondPending.getId())));
 
         assertThat(outcomes).contains(CommResponseStatus.SUCCESS,
                 CommResponseStatus.FRIEND_LIMIT_EXCEEDED_FOR_ACCEPTOR);
@@ -136,8 +135,8 @@ class FriendshipConcurrencyTest extends IntegrationTestSupport {
         Friendship secondPending = fixture.relationship(shared, second, REQUESTED);
 
         List<CommResponseStatus> outcomes = race(
-                () -> process(() -> friendService.requestAccept(first.getId(), firstPending.getId().toString())),
-                () -> process(() -> friendService.requestAccept(second.getId(), secondPending.getId().toString())));
+                () -> process(() -> friendService.requestAccept(first.getId(), firstPending.getId())),
+                () -> process(() -> friendService.requestAccept(second.getId(), secondPending.getId())));
 
         assertThat(outcomes).contains(CommResponseStatus.SUCCESS,
                 CommResponseStatus.FRIEND_LIMIT_EXCEEDED_REQUESTER);
@@ -153,8 +152,8 @@ class FriendshipConcurrencyTest extends IntegrationTestSupport {
         try {
             action.run();
             return CommResponseStatus.SUCCESS;
-        } catch (CommException exception) {
-            return exception.getStatus();
+        } catch (FriendshipException exception) {
+            return CommResponseStatus.valueOf(exception.getError().name());
         }
     }
 

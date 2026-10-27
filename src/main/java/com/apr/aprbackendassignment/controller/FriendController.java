@@ -21,6 +21,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 /**
  * =====================================================
  * Class Name   : FriendController
@@ -72,14 +74,14 @@ public class FriendController {
             @Positive @RequestHeader(xUserIdHeader) Long xUserId,
             @Valid @RequestBody FriendRequest friendRequest) {
 
-        friendRequestFacade.requestFriend(xUserId, friendRequest);
+        friendRequestFacade.requestFriend(xUserId, friendRequest.getTargetUserId());
         return CommResponse.success();
     }
     @Operation(summary = "친구 신청 수락")
     @PostMapping("/accept/{requestId}")
     public CommResponse<CommResponseStatus> requestAccept(
             @Positive @RequestHeader(xUserIdHeader) Long xUserId,
-            @PathVariable(requestIdPath) String requestId){
+            @PathVariable(requestIdPath) UUID requestId){
 
         friendService.requestAccept(xUserId, requestId);
         return CommResponse.success();
@@ -89,7 +91,7 @@ public class FriendController {
     @PostMapping("/reject/{requestId}")
     public CommResponse<CommResponseStatus> requestReject(
             @Positive @RequestHeader(xUserIdHeader) Long xUserId,
-            @PathVariable(requestIdPath) String requestId){
+            @PathVariable(requestIdPath) UUID requestId){
 
         friendService.requestReject(xUserId, requestId);
         return CommResponse.success();

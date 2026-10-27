@@ -1,7 +1,6 @@
 package com.apr.aprbackendassignment.model.constant;
 
-import com.apr.aprbackendassignment.common.exception.CommException;
-import com.apr.aprbackendassignment.common.response.CommResponseStatus;
+import com.apr.aprbackendassignment.common.exception.InvalidRequestException;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -30,7 +29,7 @@ public enum SORT_GROUP {
                 .filter(v -> v.name().equalsIgnoreCase(key))
                 .findFirst()
                 .orElseThrow(() ->
-                        new CommException(CommResponseStatus.BAD_REQUEST)
+                        new InvalidRequestException()
                 );
     }
 }

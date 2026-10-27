@@ -22,6 +22,10 @@
 | S3-001 | 공개 `approvedAt` 응답 필드와 정렬 키 이름을 유지하면서 값·정렬 기준을 실제 수락 시각으로 바꿀지. 현재 응답은 `updatedTime`, 정렬은 `createdTime`이다. | “1,3번은 너가 제안해준데로 진행해” — 이름은 유지하고 값·정렬은 실제 수락 시각으로 변경한다. | 3번 공개 API 의미·DTO·정렬·회귀 테스트 | 2026-10-26 확정 |
 | S3-002 | 기존 `ACCEPTED` 행에는 승인 업무 시각이 없다. 새 nullable `approved_at`을 추가할 때 기존 행을 일괄 수정하지 않고 읽기 시 `updated_time`을 근사값으로 사용할지, `null`로 둘지, 별도 이관할지. | “현재 db를 비워놨으니 과거 값 이런게 없어 approved_at에 저장하도록 하고 수정시에는 upadatetime에 저장” — 기존 행 fallback·일괄 이관 없이 신규 수락 시 `approved_at`에 기록하고 이후 수정은 감사 필드 `updatedTime`으로 관리한다. DB가 비어 있다는 내용은 사용자 진술이다. | 3번 데이터·응답·정렬·스키마 | 2026-10-26 확정 |
 | S3-PROD-APPROVAL | 3번의 엔티티 행위·승인 업무 시각·Clock·응답 정렬 구현을 위해 제시한 `Friendship`, `FriendServiceImpl`, `FriendsResponse`, `SORT_GROUP`, `WINDOW_SLIDING`, 신규 `TimeConfig`, `schema.sql`, `SampleDataInsert` 변경을 승인할지. | “나머지 1,3번은 너가 제안해준데로 진행해” — 앞서 목적·대상 파일·예상 동작을 제시한 범위의 프로덕션 코드 변경 승인. | 3번 프로덕션 코드 생성·수정 | 2026-10-26 승인 |
+| S4-001 | 누락·형식 오류 헤더/쿼리/본문과 Bean Validation 실패를 공통 `400 BAD_REQUEST`로 응답할지. HEAD `8064337` MockMvc 관찰에서 헤더 누락·0, 본문 대상 ID 누락·0, `window` 누락, `page=-1`은 `500 INTERNAL_SERVER_ERROR`였다. | 세 선택 질문에 대한 “마저 진행해” 답변에 따라 제시한 권장안으로 진행: 기존 공통 응답 형식·코드·문구를 사용한 400으로 정리하고 기존 업무 오류는 유지한다. | 4번 공개 입력 오류 계약·API 테스트 | 2026-10-27 확정 |
+| S4-PROD-APPROVAL | 4번 서비스·HTTP 오류·입력 타입 분리를 위해 제시한 컨트롤러·서비스·Facade·Advice·입력 변환 파일과 신규 HTTP 비의존 예외 3개를 수정·생성할지. | 세 선택 질문에 대한 “마저 진행해” 답변으로 제시한 `STEP4-PREPARATION.md`의 목적·대상 파일·예상 동작을 승인했다. | 4번 프로덕션 코드 변경 | 2026-10-27 승인 |
+| S4-002 | 4번 완료·독립 리뷰 후 `step-4-checkpoint`를 게시 도구에 추가해 전용 브랜치에 commit/push할지, 5~6번 완료 후 `full-refactor`로 게시할지. | 세 선택 질문에 대한 “마저 진행해” 답변에 따라 권장한 4번 완료 즉시 게시로 진행한다. | 4번 게시 범위·시점 | 2026-10-27 확정 |
+| S4-REVIEW-01-APPROVAL | 독립 리뷰에서 `POST /api/friends/request`의 숫자가 아닌·범위 초과 `X-user-Id`가 `LimitInterceptor.java`의 `Long.valueOf`에서 실패해 승인된 400 계약 대신 500이 되는 회귀를 발견했다. 당초 승인 파일 밖의 `LimitInterceptor.java`에서 헤더를 검증하고 파싱 실패를 `InvalidRequestException`으로 변환할지. | 2026-10-27 사용자 직접 답변 “승인할게”. 유효한 양수 헤더의 제한기·429 동작을 유지하는 좁은 변경을 승인했다. | 4번 리뷰 지적 프로덕션 수정·API 테스트·게시 | 승인·구현·작업 트리 독립 재리뷰 완료 |
 
 후속 단계의 미확정 정책이 나타나면 여기와 `STATE.json`에 ID·질문·영향 단계를
 추가한다. 사용자 답변을 받은 뒤 원문 취지·날짜·결정 근거를 기록하고 의존 작업을 재개한다.
