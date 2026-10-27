@@ -29,8 +29,8 @@
 3. `powershell -NoProfile -File scripts/install-git-hooks.ps1`를 실행한다.
    `git config --get core.hooksPath`가 `.githooks`인지 확인한다.
 4. 이번 범위를 `setup-checkpoint`, `step-2-checkpoint`, `step-3-checkpoint`,
-   `step-4-checkpoint`, `full-refactor` 중 실제 완료 단계에 맞게 정하고 상태에 기록한다.
-   각 범위의 완료 단계는 각각 `[1]`, `[1,2]`, `[1,2,3]`, `[1,2,3,4]`,
+   `step-4-checkpoint`, `step-5-checkpoint`, `full-refactor` 중 실제 완료 단계에 맞게 정하고 상태에 기록한다.
+   각 범위의 완료 단계는 각각 `[1]`, `[1,2]`, `[1,2,3]`, `[1,2,3,4]`, `[1,2,3,4,5]`,
    `[1,2,3,4,5,6]`이다.
    게시 시점은 사용자 답변으로 확정한다. 설정 체크포인트와 후속 2~6번의 완료 상태는
    각각 별도로 기록한다.
@@ -98,7 +98,8 @@ refactor_orchestrator
    최초 설치의 scope는 `setup-checkpoint`, `completedSteps`는 `[1]`이었다. 2번만
    추가 완료한 게시에서는 `step-2-checkpoint`, `[1,2]`를 사용했다. 3번까지 완료한
    게시에는 `step-3-checkpoint`, `[1,2,3]`을 사용했다. 4번까지 완료한 게시에는
-   `step-4-checkpoint`, `[1,2,3,4]`를 사용한다.
+   `step-4-checkpoint`, `[1,2,3,4]`를 사용했다. 5번까지 완료한 게시에는
+   `step-5-checkpoint`, `[1,2,3,4,5]`를 사용한다.
 4. 리뷰어는 `templates/REVIEW.md` 형식으로 최종 결과를 작성한다. 승인 JSON은
    `git rev-parse --git-path refactor-review.json` 경로에 쓴다. 저장소 파일 안에 자기 tree
    hash를 넣으면 tree가 다시 바뀌므로 승인 JSON은 stage하지 않는다.
@@ -139,5 +140,6 @@ powershell -NoProfile -File scripts/publish-reviewed.ps1 `
    강제로 덮지 않고 중단한다. 통합/충돌 해결로 tree가 바뀌면 검증과 독립 리뷰를 반복한다.
 8. 최종 응답에 실제 완료 scope, commit, push 결과, 남은 단계를 보고한다.
    setup 체크포인트 승인으로 2~6번 완료를, step-2 체크포인트 승인으로 3~6번 완료를,
-   step-3 체크포인트 승인으로 4~6번 완료를, step-4 체크포인트 승인으로 5~6번 완료를
+   step-3 체크포인트 승인으로 4~6번 완료를, step-4 체크포인트 승인으로 5~6번 완료를,
+   step-5 체크포인트 승인으로 6번 완료를
    주장하지 않는다.

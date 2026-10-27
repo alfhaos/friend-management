@@ -3,7 +3,6 @@ package com.apr.aprbackendassignment.common.interceptor;
 import com.apr.aprbackendassignment.common.exception.InvalidRequestException;
 import com.apr.aprbackendassignment.common.response.CommResponse;
 import com.apr.aprbackendassignment.common.response.CommResponseStatus;
-import com.apr.aprbackendassignment.util.LimitProperties;
 import com.apr.aprbackendassignment.util.RedisRateLimiter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,7 +10,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
-import org.springframework.web.servlet.HandlerMapping;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.io.IOException;
@@ -33,7 +31,6 @@ public class LimitInterceptor implements HandlerInterceptor {
 
     private final RedisRateLimiter limiter;
     private final ObjectMapper objectMapper;
-    private final LimitProperties properties;
     private final static String X_USER_ID_HEADER = "X-user-Id";
 
 
@@ -43,10 +40,7 @@ public class LimitInterceptor implements HandlerInterceptor {
             HttpServletResponse response,
             Object handler
     ) throws IOException {
-        Object mappedPath = request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
-        if (!"POST".equals(request.getMethod())
-                || !(mappedPath instanceof String path)
-                || properties.getPaths().stream().noneMatch(path::equals)) {
+        if (!"POST".equals(request.getMethod())) {
             return true;
         }
         String userId = request.getHeader(X_USER_ID_HEADER);

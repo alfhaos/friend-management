@@ -14,8 +14,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  *  - 인터셉터를 등록하여 특정 경로에 대한 요청을 가로채고 처리
 
  * 주요 기능
- *  - 인터셉터 등록: RateLimitInterceptor를 등록하여 모든 경로에 대해 요청 속도 제한을 적용
- *  - SWAGGER 등 특정 경로는 속도 제한에서 제외
+ *  - 인터셉터 등록: 설정된 신청 경로에 요청 속도 제한을 적용
+ *  - 설정된 제외 경로는 요청 속도 제한에서 제외
  * =====================================================
  */
 @Configuration
@@ -27,8 +27,8 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(rateLimitInterceptor)
-                .addPathPatterns("/**")        // 적용할 URL
-                .excludePathPatterns(          // 제외할 URL
+                .addPathPatterns(rateLimitProperties.getPaths().toArray(String[]::new))
+                .excludePathPatterns(
                         rateLimitProperties.getExcludePaths()
                                 .toArray(String[]::new)
                 );

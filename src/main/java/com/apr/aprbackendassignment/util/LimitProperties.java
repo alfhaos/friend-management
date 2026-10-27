@@ -1,9 +1,13 @@
 package com.apr.aprbackendassignment.util;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Positive;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
+import org.springframework.validation.annotation.Validated;
 
 import java.util.List;
 /**
@@ -19,12 +23,15 @@ import java.util.List;
 @Getter
 @Setter
 @Component
+@Validated
 @ConfigurationProperties(prefix = "limit")
 public class LimitProperties {
 
-    private int maxFriend;
+    @Positive
     private int maxRequests;
+    @Positive
     private int windowMilliSeconds;
-    private List<String> paths;
+    @NotEmpty
+    private List<@NotBlank String> paths;
     private List<String> excludePaths;
 }

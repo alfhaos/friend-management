@@ -10,6 +10,7 @@
 - 판정: changes-required / approved
 - 완료 단계: setup-checkpoint는 `[1]`; step-2-checkpoint는 `[1,2]`;
   step-3-checkpoint는 `[1,2,3]`; step-4-checkpoint는 `[1,2,3,4]`;
+  step-5-checkpoint는 `[1,2,3,4,5]`;
   full-refactor는 `[1,2,3,4,5,6]`
 - 결정 감사: `DECISIONS.md`의 사용자 답변과 구현 일치 여부, 현재 scope의 미해결 질문 0건
 - 미완료 범위: setup에서는 2~6 pending을 명시

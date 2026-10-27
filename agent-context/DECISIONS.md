@@ -26,6 +26,10 @@
 | S4-PROD-APPROVAL | 4번 서비스·HTTP 오류·입력 타입 분리를 위해 제시한 컨트롤러·서비스·Facade·Advice·입력 변환 파일과 신규 HTTP 비의존 예외 3개를 수정·생성할지. | 세 선택 질문에 대한 “마저 진행해” 답변으로 제시한 `STEP4-PREPARATION.md`의 목적·대상 파일·예상 동작을 승인했다. | 4번 프로덕션 코드 변경 | 2026-10-27 승인 |
 | S4-002 | 4번 완료·독립 리뷰 후 `step-4-checkpoint`를 게시 도구에 추가해 전용 브랜치에 commit/push할지, 5~6번 완료 후 `full-refactor`로 게시할지. | 세 선택 질문에 대한 “마저 진행해” 답변에 따라 권장한 4번 완료 즉시 게시로 진행한다. | 4번 게시 범위·시점 | 2026-10-27 확정 |
 | S4-REVIEW-01-APPROVAL | 독립 리뷰에서 `POST /api/friends/request`의 숫자가 아닌·범위 초과 `X-user-Id`가 `LimitInterceptor.java`의 `Long.valueOf`에서 실패해 승인된 400 계약 대신 500이 되는 회귀를 발견했다. 당초 승인 파일 밖의 `LimitInterceptor.java`에서 헤더를 검증하고 파싱 실패를 `InvalidRequestException`으로 변환할지. | 2026-10-27 사용자 직접 답변 “승인할게”. 유효한 양수 헤더의 제한기·429 동작을 유지하는 좁은 변경을 승인했다. | 4번 리뷰 지적 프로덕션 수정·API 테스트·게시 | 승인·구현·작업 트리 독립 재리뷰 완료 |
+| S5-DTO-DELETE | `UsersDto.java`, `WindowResponse.java`는 저장소에 호출자가 없다. 두 파일을 삭제할지. | “1. 삭제 승인” — 두 파일의 삭제 승인. | 5번 미사용 타입 정리 | 2026-10-27 승인 |
+| S5-PROD-APPROVAL | 두 DTO 삭제 외에 `STEP5-PREPARATION.md`의 `LimitProperties.java`, 신규 `FriendLimitProperties.java`, `FriendServiceImpl.java`, `WebConfig.java`, `LimitInterceptor.java` 설정 분리·검증·경로 등록 변경을 승인할지. 기존 설정 키·공개 HTTP 응답·Redis 키 정책은 유지한다. | 첫 답변 “삭제 승인”의 범위를 확인한 뒤 “다 승인한다고”로 나머지 제안 파일·예상 동작까지 승인했다. | 5번 남은 프로덕션 생성·수정과 테스트 | 2026-10-27 승인 |
+| S5-PUBLISH | 현재 게이트에는 5번 단독 scope가 없다. 5번 완료 후 `step-5-checkpoint`를 추가해 전용 브랜치에 게시할지, 6번까지 완료한 뒤 `full-refactor`로 게시할지. | “3. 바로 게시” — 5번 완료 후 전용 브랜치에 게시. | 5번 게시 범위·시점·게이트 문서/스크립트 | 2026-10-27 확정 |
+| S5-REDIS-POLICY | 실제 테스트 Redis에서 기존 제한 키에 rate 1 설정 후 rate 2로 `trySetRate`를 호출하면 false이고 허용 횟수는 최초 1회로 유지됐다. 이 기존 정책을 보존할지, 재시작 후 설정 변경을 기존 키에 반영하는 방식을 5번에 추가할지. | “2. 그대로둬” — 기존 최초 예산 유지 동작 보존. | 5번 Redis 제한 정책·설정·테스트·게시 | 2026-10-27 확정 |
 
 후속 단계의 미확정 정책이 나타나면 여기와 `STATE.json`에 ID·질문·영향 단계를
 추가한다. 사용자 답변을 받은 뒤 원문 취지·날짜·결정 근거를 기록하고 의존 작업을 재개한다.

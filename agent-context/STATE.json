@@ -2,9 +2,29 @@
   "schemaVersion": 1,
   "branch": "refactor/backend-quality",
   "sourcePlan": "BACKEND_QUALITY_REVIEW.md#20",
-  "activeScope": "step-4-checkpoint",
+  "activeScope": "step-5-checkpoint",
   "pendingDecisions": [],
   "resolvedDecisions": [
+    {
+      "id": "S5-PROD-APPROVAL",
+      "decision": "STEP5-PREPARATION.md에 제시한 LimitProperties, 신규 FriendLimitProperties, FriendServiceImpl, WebConfig, LimitInterceptor 설정·경로 수정 승인; 기존 limit.* 키와 HTTP/Redis 정책 유지",
+      "source": "2026-10-27 사용자 직접 답변: 다 승인한다고"
+    },
+    {
+      "id": "S5-DTO-DELETE",
+      "decision": "저장소에 호출자가 없는 UsersDto.java와 WindowResponse.java 삭제 승인",
+      "source": "2026-10-27 사용자 직접 답변: 1. 삭제 승인"
+    },
+    {
+      "id": "S5-REDIS-POLICY",
+      "decision": "기존 Redis 제한 키가 최초 예산을 유지하는 동작을 그대로 보존",
+      "source": "2026-10-27 사용자 직접 답변: 2. 그대로둬"
+    },
+    {
+      "id": "S5-PUBLISH",
+      "decision": "5번 전체 검증·독립 리뷰 완료 후 step-5-checkpoint를 추가해 refactor/backend-quality에 commit/push",
+      "source": "2026-10-27 사용자 직접 답변: 3. 바로 게시"
+    },
     {
       "id": "S4-REVIEW-01-APPROVAL",
       "decision": "LimitInterceptor.java에서 신청 API의 잘못된 X-user-Id를 공통 400 BAD_REQUEST로 처리하되 유효한 양수 ID의 요청 제한과 429는 유지하는 프로덕션 수정 승인",
@@ -106,8 +126,8 @@
       "source": "2026-10-22 사용자 직접 답변"
     }
   ],
-  "checkpointStatus": "step-4-complete-awaiting-staged-review-and-publication",
-  "currentStep": 4,
+  "checkpointStatus": "step-5-implementation-and-validation-complete-awaiting-staged-review-and-publication",
+  "currentStep": 5,
   "steps": [
     {
       "number": 1,
@@ -116,17 +136,17 @@
     },
     { "number": 2, "status": "complete", "evidence": "2026-10-26 commit 1216e12 published to origin/refactor/backend-quality after final review and validation; 54 tests, 0 failures, 0 skipped" },
     { "number": 3, "status": "complete", "evidence": "2026-10-26 staged core step-3 implementation independently approved by code and security reviewers; lint test sampleDataClasses exit 0; 63 tests, 0 failures, 0 skipped" },
-    { "number": 4, "status": "complete", "evidence": "2026-10-27 final worktree lint test sampleDataClasses exit 0, 74 tests across 17 suites with no failures/errors/skips; independent code and security re-reviews have zero required findings; exact staged-tree publication review remains" },
-    { "number": 5, "status": "pending" },
+    { "number": 4, "status": "complete", "evidence": "2026-10-27 commit 2b0af40 published to origin/refactor/backend-quality after identical staged-tree independent code/security review and actual lint/test/sampleDataClasses; 74 tests, 0 failures/errors/skips" },
+    { "number": 5, "status": "implementation-and-validation-complete-awaiting-staged-review", "evidence": "2026-10-28 approved configuration ownership/validation, configured interceptor registration, unused DTO deletion, and step-5 gate changes are implemented. Full worktree .\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache exit 0: 20 suites, 84 tests, 0 failures/errors/skips, 9 tasks executed. Exact staged-tree independent review and publication remain." },
     { "number": 6, "status": "pending" }
   ],
   "maxParallelImplementers": 2,
   "noProgressLimit": 3,
   "publicationAuthorized": true,
-  "publicationScope": "step-4-checkpoint",
+  "publicationScope": "step-5-checkpoint",
   "publicationAttestation": "git-path:refactor-review.json",
   "openRequiredFindings": [],
-  "reviewStatus": "step-4-worktree-code-and-security-approved-staged-review-pending",
+  "reviewStatus": "step-5-worktree-validation-complete-staged-review-pending",
   "currentValidation": [
     {
       "command": ".\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache",
@@ -277,12 +297,62 @@
       "command": ".\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache",
       "exitCode": 0,
       "result": "2026-10-27; final step-4 worktree after second interceptor fix, 74 tests across 17 suites, 0 failures, 0 errors, 0 skipped; 9 tasks executed; code and security independent re-reviews found zero required findings; exact staged-tree review and publication gate remain"
+    },
+    {
+      "command": ".\\gradlew.bat test --tests com.apr.aprbackendassignment.util.RedisRateLimiterConfigurationTest --rerun-tasks --no-build-cache",
+      "exitCode": 0,
+      "result": "2026-10-27; step-5 test-only characterization on actual Testcontainers Redis, 1 test passed: second trySetRate on existing key returns false and initial allowance remains; worktree not final review tree"
+    },
+    {
+      "command": ".\\gradlew.bat lint --rerun-tasks --no-build-cache",
+      "exitCode": 0,
+      "result": "2026-10-27; step-5 preparation worktree with documentation and Redis characterization test, 8 tasks executed successfully; production changes and full regression await user decisions"
+    },
+    {
+      "command": ".\\gradlew.bat compileJava --rerun-tasks --no-build-cache",
+      "exitCode": 0,
+      "result": "2026-10-27; step-5 approved UsersDto/WindowResponse deletions, production compile passed; remaining config changes pending"
+    },
+    {
+      "command": "powershell -NoProfile -File scripts/test-git-hook.ps1",
+      "exitCode": 0,
+      "result": "2026-10-27; step-5 publication gate smoke rejects failed lint, pending decisions, and incomplete completedSteps through step-5; not final staged-tree review"
+    },
+    {
+      "command": ".\\gradlew.bat test --tests com.apr.aprbackendassignment.util.RedisRateLimiterConcurrencyTest --rerun-tasks --no-build-cache",
+      "exitCode": 0,
+      "result": "2026-10-27; step-5 test-only regression, 1 test passed: distinct users enter Redis limiter concurrently; global synchronized would fail the bounded latch check"
+    },
+    {
+      "command": ".\\gradlew.bat lint --rerun-tasks --no-build-cache",
+      "exitCode": 0,
+      "result": "2026-10-27; partial step-5 worktree with approved DTO deletions, step-5 gate, Redis behavior/concurrency tests and docs, 8 tasks executed successfully; settings/interceptor production changes and full test remain"
+    },
+    {
+      "command": ".\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache",
+      "exitCode": 0,
+      "result": "2026-10-27; partial step-5 worktree after approved DTO deletions, publication gate and two Redis tests: 76 tests across 19 suites, 0 failures/errors/skips, 9 tasks executed; config/interceptor decision and final staged-tree review remain"
+    },
+    {
+      "command": ".\\gradlew.bat test --tests com.apr.aprbackendassignment.controller.FriendRequestApiTest --tests com.apr.aprbackendassignment.controller.FriendRequestRedisOutageApiTest --tests com.apr.aprbackendassignment.controller.FriendInputAndBusinessApiTest --rerun-tasks --no-build-cache",
+      "exitCode": 0,
+      "result": "2026-10-28; step-5 approved configuration/interceptor worktree, 3 controller suites and 16 tests, 0 failures/errors/skips; normal 429, semicolon alias, and invalid-header 400 regressions passed"
+    },
+    {
+      "command": ".\\gradlew.bat test --tests com.apr.aprbackendassignment.util.LimitPropertiesBindingTest --rerun-tasks --no-build-cache",
+      "exitCode": 0,
+      "result": "2026-10-28; step-5 configuration binding, 8 tests, 0 failures/errors/skips; existing limit.* binding and nonpositive/empty paths startup rejection passed"
+    },
+    {
+      "command": ".\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache",
+      "exitCode": 0,
+      "result": "2026-10-28; full step-5 worktree after all approved production, test, and publication-gate changes, 20 suites and 84 tests, 0 failures/errors/skips, 9 tasks executed; status documentation was finalized after this run, and exact staged-tree independent review and publication remain"
     }
   ],
   "notes": [
     "Step 2 was published in commit 1216e12; step 3 contract and production scope were approved on 2026-10-26. Step 3 implementation, validation, and core code/security reviews are complete.",
     "Prior WIP transfer is historical and did not itself complete step 2.",
-    "Step 3 was published in commit 8064337. Step 4 input-error policy, initial production files, publication scope, and the LimitInterceptor review repair were accepted on 2026-10-27. Both interceptor review findings were fixed; full worktree validation and independent code/security re-reviews passed. Exact staged-tree review and publication remain. Steps 5 and 6 remain pending.",
+    "Step 3 was published in commit 8064337 and step 4 in commit 2b0af40. Step 5 implementation and worktree validation are complete: existing query and synchronization work from step 2 is preserved; configuration ownership/validation and unused types are addressed. User approval and immediate publication timing are recorded; exact staged-tree independent review and publication remain. Step 6 remains pending.",
     "Final independent review must approve the exact staged tree; never store the attested tree hash inside this tracked file."
   ]
 }

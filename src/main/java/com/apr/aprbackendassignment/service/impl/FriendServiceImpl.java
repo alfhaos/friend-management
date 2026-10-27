@@ -12,7 +12,7 @@ import com.apr.aprbackendassignment.model.entity.Users;
 import com.apr.aprbackendassignment.repository.FriendshipJPARepository;
 import com.apr.aprbackendassignment.repository.UsersJPARepository;
 import com.apr.aprbackendassignment.service.FriendService;
-import com.apr.aprbackendassignment.util.LimitProperties;
+import com.apr.aprbackendassignment.util.FriendLimitProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -41,7 +41,7 @@ public class FriendServiceImpl implements FriendService {
 
     private final FriendshipJPARepository friendshipJPARepository;
     private final UsersJPARepository usersJPARepository;
-    private final LimitProperties limitProperties;
+    private final FriendLimitProperties friendLimitProperties;
     private final Clock clock;
     // 목록 조회 기능 - 현재 고정된 사용자 ID (예: 1L) 사용
     private static final Long CURRENT_USER_ID = 1L;
@@ -129,13 +129,13 @@ public class FriendServiceImpl implements FriendService {
         int currentUserFriendCnt = friendshipJPARepository.countUsersFriends(xUserId, FRIENDSHIP_STATUS.ACCEPTED);
 
         // 현재 로그인 유저의 친구 수 체크
-        if(currentUserFriendCnt >= limitProperties.getMaxFriend()) {
+        if(currentUserFriendCnt >= friendLimitProperties.getMaxFriend()) {
             throw new FriendshipException(FriendshipError.FRIEND_LIMIT_EXCEEDED_FOR_ACCEPTOR);
         }
 
         // 상대방 친구 수 제한 체크
         int targetUserFriendCnt = friendshipJPARepository.countUsersFriends(targetUserId, FRIENDSHIP_STATUS.ACCEPTED);
-        if(targetUserFriendCnt >= limitProperties.getMaxFriend()) {
+        if(targetUserFriendCnt >= friendLimitProperties.getMaxFriend()) {
             throw new FriendshipException(FriendshipError.FRIEND_LIMIT_EXCEEDED_REQUESTER);
         }
         friendship.accept(xUserId, LocalDateTime.now(clock));
