@@ -1,7 +1,7 @@
 # 목표 시스템
 친구 관리 시스템 구축
 
-> **리팩토링 진행 상태 (2026-10-28):** 1~5번은 `refactor/backend-quality` 브랜치에 게시했습니다. 6번은 패키지·이름·주석·문서 정리와 전체 검증을 마쳤고 독립 리뷰·게시를 기다립니다. 현재 상태와 사용자 결정은 [상태 기록](agent-context/STATE.json)과 [결정 기록](agent-context/DECISIONS.md)을 참조하세요.
+> **리팩토링 진행 상태 (2026-10-28):** 1~6번은 `refactor/backend-quality` 브랜치에 게시했습니다. 6번의 코드·테스트·설정 정리는 커밋 `ef79016`에 반영됐습니다. 현재 상태와 사용자 결정은 [상태 기록](agent-context/STATE.json)과 [결정 기록](agent-context/DECISIONS.md)을 참조하세요.
 
 사용자 인증 기능이 없기에 목록 조회 API는 기본적으로 사용자 아이디 (1L)을 기준으로 조회합니다.
 

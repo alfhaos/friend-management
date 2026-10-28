@@ -637,7 +637,7 @@ Repository 인터페이스와 어댑터를 분리하면 의존성 방향을 명�
   20개 suite·84개 test에서 실패·오류·건너뜀 0이었다. 동일 staged tree
   `b21938ef51019287a3c0f66f857e0a228f1a2934`는 독립 코드·보안 리뷰에서 수정 필요 0건이었다.
 
-## 23. 실행 이력 — 6번 P3 정리와 작업 트리 검증 (2026-10-28)
+## 23. 실행 이력 — 6번 P3 정리·검증·게시 (2026-10-28)
 
 20절의 **6번: 도메인별 패키지·이름·주석·문서 정리**에서 친구 관계·사용자·요청 제한 코드를
 책임별 패키지로 옮기고 내부 타입 5개의 이름을 정리했다. 테스트·fixture·샘플 데이터 import와
@@ -648,5 +648,7 @@ Springdoc 스캔 경로·Gradle 샘플 mainClass를 맞췄으며, 무효 Logback
 OpenAPI 신청 경로 확인 테스트를 추가했다. 실제 작업 트리 실행
 `.\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache`는 exit 0,
 20개 suite·85개 test에서 실패·오류·건너뜀 0이었다. 공개 HTTP·JSON·오류 코드, DB 스키마·
-enum literal, Redis 정책과 트랜잭션은 유지한다. 최종 staged tree 독립 리뷰와 게시 결과는
-아직 확인 전이다. 개발 DB에 쓰는 `seedSampleData`는 실행하지 않았다.
+enum literal, Redis 정책과 트랜잭션은 유지한다. 최종 staged tree
+`5eb3302c849bc1f270934f10343022376191dc31`은 독립 코드·보안 리뷰에서 수정 필요 0건이었고,
+게시 게이트의 lint·전체 테스트·샘플 컴파일과 pre-commit lint를 통과해 `ef79016`으로
+`origin/refactor/backend-quality`에 게시됐다. 개발 DB에 쓰는 `seedSampleData`는 실행하지 않았다.

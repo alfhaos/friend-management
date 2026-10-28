@@ -77,5 +77,7 @@ Docker가 실행 중이어야 Testcontainers 기반 전체 테스트가 수행�
 - 실제 `.\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache` exit 0:
   20개 suite·85개 test, 실패·오류·건너뜀 0. 추가한 API 테스트는 OpenAPI 문서에
   `/api/friends/request`가 남는 것을 확인한다.
-- 이 기록은 작업 트리 검증이다. 최종 staged tree의 독립 리뷰와 게이트 검증·게시 결과는
-  별도로 기록한다. `seedSampleData`는 실행하지 않았다.
+- 최종 staged tree `5eb3302c849bc1f270934f10343022376191dc31`은 독립 코드·보안
+  리뷰에서 수정 필요 0건이었다. 게시 게이트의 lint·전체 테스트·샘플 컴파일과 pre-commit
+  lint가 모두 성공했고, 커밋 `ef79016`을 `origin/refactor/backend-quality`에 푸시했다.
+  `seedSampleData`는 실행하지 않았다.

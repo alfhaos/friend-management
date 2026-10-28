@@ -1,7 +1,6 @@
 # 단계별 리팩토링 계획
 
-기준: `BACKEND_QUALITY_REVIEW.md` 20절. **1~5번은 게시됐고 6번은 구현·전체 검증 후
-독립 리뷰 단계다.** 아래 표는 단계별 계약이며
+기준: `BACKEND_QUALITY_REVIEW.md` 20절. **1~6번은 전용 브랜치에 게시됐다.** 아래 표는 단계별 계약이며
 완료 보고가 아니다. 상태의 기계 판독 기준은 `STATE.json`, 근거는 실제 검증/리뷰 기록이다.
 
 경로는 `src/main/java/com/apr/aprbackendassignment/`를 기준으로 적는다. 소유권은 단계가

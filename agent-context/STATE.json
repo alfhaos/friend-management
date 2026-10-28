@@ -126,7 +126,7 @@
       "source": "2026-10-22 사용자 직접 답변"
     }
   ],
-  "checkpointStatus": "step-6-implementation-and-validation-complete-awaiting-staged-review",
+  "checkpointStatus": "full-refactor-published",
   "currentStep": 6,
   "steps": [
     {
@@ -138,7 +138,7 @@
     { "number": 3, "status": "complete", "evidence": "2026-10-26 staged core step-3 implementation independently approved by code and security reviewers; lint test sampleDataClasses exit 0; 63 tests, 0 failures, 0 skipped" },
     { "number": 4, "status": "complete", "evidence": "2026-10-27 commit 2b0af40 published to origin/refactor/backend-quality after identical staged-tree independent code/security review and actual lint/test/sampleDataClasses; 74 tests, 0 failures/errors/skips" },
     { "number": 5, "status": "complete", "evidence": "2026-10-28 commit 579d346 published to origin/refactor/backend-quality after identical staged-tree independent code/security review and actual lint/test/sampleDataClasses; 84 tests across 20 suites, 0 failures/errors/skips." },
-    { "number": 6, "status": "implementation-and-validation-complete-awaiting-staged-review", "evidence": "2026-10-28 package/name/comment/document alignment, functional relationship selection, test/fixture/sample import updates, springdoc/logback/mainClass alignment completed. Full worktree lint/test/sampleDataClasses exit 0: 20 suites, 85 tests, 0 failures/errors/skips. Exact staged-tree independent review and publication remain." }
+    { "number": 6, "status": "complete", "evidence": "2026-10-28 commit ef79016 published to origin/refactor/backend-quality after identical staged-tree independent code/security approval (tree 5eb3302c849bc1f270934f10343022376191dc31) and lint/test/sampleDataClasses; 20 suites, 85 tests, 0 failures/errors/skips." }
   ],
   "maxParallelImplementers": 2,
   "noProgressLimit": 3,
@@ -146,7 +146,7 @@
   "publicationScope": "full-refactor",
   "publicationAttestation": "git-path:refactor-review.json",
   "openRequiredFindings": [],
-  "reviewStatus": "step-6-staged-review-pending",
+  "reviewStatus": "step-6-core-staged-tree-approved-and-published",
   "currentValidation": [
     {
       "command": ".\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache",
@@ -357,12 +357,17 @@
       "command": ".\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache",
       "exitCode": 0,
       "result": "2026-10-28; step-6 worktree from HEAD 579d346 after class/file name fixes: 20 suites, 85 tests, 0 failures/errors/skips, 9 tasks executed. Final documentation and staged-tree review/publish gate remain."
+    },
+    {
+      "command": "powershell -NoProfile -File scripts/publish-reviewed.ps1 -Scope full-refactor -AttestationPath .git/refactor-review.json -Message <Korean conventional commit message>",
+      "exitCode": 0,
+      "result": "2026-10-28; reviewed staged tree 5eb3302c849bc1f270934f10343022376191dc31; full lint/test/sampleDataClasses and pre-commit lint exit 0; commit ef79016 pushed to origin/refactor/backend-quality."
     }
   ],
   "notes": [
     "Step 2 was published in commit 1216e12; step 3 contract and production scope were approved on 2026-10-26. Step 3 implementation, validation, and core code/security reviews are complete.",
     "Prior WIP transfer is historical and did not itself complete step 2.",
-    "Step 3 was published in commit 8064337, step 4 in commit 2b0af40, and step 5 in commit 579d346. Step 6 package/name/comment/document alignment and user-requested functional relationship selection passed worktree lint/test/sampleDataClasses; staged review and publication remain.",
+    "Step 3 was published in commit 8064337, step 4 in commit 2b0af40, step 5 in commit 579d346, and step 6 in commit ef79016. Core step-6 tree 5eb3302c849bc1f270934f10343022376191dc31 passed independent code/security review, full tests, and the publication gate.",
     "Final independent review must approve the exact staged tree; never store the attested tree hash inside this tracked file."
   ]
 }
