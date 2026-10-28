@@ -1,7 +1,7 @@
 package com.apr.aprbackendassignment.support;
 
-import com.apr.aprbackendassignment.repository.FriendshipJPARepository;
-import com.apr.aprbackendassignment.repository.UsersJPARepository;
+import com.apr.aprbackendassignment.friendship.infrastructure.FriendshipJPARepository;
+import com.apr.aprbackendassignment.user.infrastructure.UsersJPARepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.redisson.api.RedissonClient;

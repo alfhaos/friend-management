@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "branch": "refactor/backend-quality",
   "sourcePlan": "BACKEND_QUALITY_REVIEW.md#20",
-  "activeScope": "step-5-checkpoint",
+  "activeScope": "full-refactor",
   "pendingDecisions": [],
   "resolvedDecisions": [
     {
@@ -126,8 +126,8 @@
       "source": "2026-10-22 사용자 직접 답변"
     }
   ],
-  "checkpointStatus": "step-5-implementation-and-validation-complete-awaiting-staged-review-and-publication",
-  "currentStep": 5,
+  "checkpointStatus": "step-6-implementation-and-validation-complete-awaiting-staged-review",
+  "currentStep": 6,
   "steps": [
     {
       "number": 1,
@@ -137,16 +137,16 @@
     { "number": 2, "status": "complete", "evidence": "2026-10-26 commit 1216e12 published to origin/refactor/backend-quality after final review and validation; 54 tests, 0 failures, 0 skipped" },
     { "number": 3, "status": "complete", "evidence": "2026-10-26 staged core step-3 implementation independently approved by code and security reviewers; lint test sampleDataClasses exit 0; 63 tests, 0 failures, 0 skipped" },
     { "number": 4, "status": "complete", "evidence": "2026-10-27 commit 2b0af40 published to origin/refactor/backend-quality after identical staged-tree independent code/security review and actual lint/test/sampleDataClasses; 74 tests, 0 failures/errors/skips" },
-    { "number": 5, "status": "implementation-and-validation-complete-awaiting-staged-review", "evidence": "2026-10-28 approved configuration ownership/validation, configured interceptor registration, unused DTO deletion, and step-5 gate changes are implemented. Full worktree .\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache exit 0: 20 suites, 84 tests, 0 failures/errors/skips, 9 tasks executed. Exact staged-tree independent review and publication remain." },
-    { "number": 6, "status": "pending" }
+    { "number": 5, "status": "complete", "evidence": "2026-10-28 commit 579d346 published to origin/refactor/backend-quality after identical staged-tree independent code/security review and actual lint/test/sampleDataClasses; 84 tests across 20 suites, 0 failures/errors/skips." },
+    { "number": 6, "status": "implementation-and-validation-complete-awaiting-staged-review", "evidence": "2026-10-28 package/name/comment/document alignment, functional relationship selection, test/fixture/sample import updates, springdoc/logback/mainClass alignment completed. Full worktree lint/test/sampleDataClasses exit 0: 20 suites, 85 tests, 0 failures/errors/skips. Exact staged-tree independent review and publication remain." }
   ],
   "maxParallelImplementers": 2,
   "noProgressLimit": 3,
   "publicationAuthorized": true,
-  "publicationScope": "step-5-checkpoint",
+  "publicationScope": "full-refactor",
   "publicationAttestation": "git-path:refactor-review.json",
   "openRequiredFindings": [],
-  "reviewStatus": "step-5-worktree-validation-complete-staged-review-pending",
+  "reviewStatus": "step-6-staged-review-pending",
   "currentValidation": [
     {
       "command": ".\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache",
@@ -347,12 +347,22 @@
       "command": ".\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache",
       "exitCode": 0,
       "result": "2026-10-28; full step-5 worktree after all approved production, test, and publication-gate changes, 20 suites and 84 tests, 0 failures/errors/skips, 9 tasks executed; status documentation was finalized after this run, and exact staged-tree independent review and publication remain"
+    },
+    {
+      "command": ".\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache",
+      "exitCode": 1,
+      "result": "2026-10-28; step-6 worktree from HEAD 579d346: checkstyleTest found two moved test class/file name mismatches; test task ran but build failed. Both names were corrected before rerun."
+    },
+    {
+      "command": ".\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache",
+      "exitCode": 0,
+      "result": "2026-10-28; step-6 worktree from HEAD 579d346 after class/file name fixes: 20 suites, 85 tests, 0 failures/errors/skips, 9 tasks executed. Final documentation and staged-tree review/publish gate remain."
     }
   ],
   "notes": [
     "Step 2 was published in commit 1216e12; step 3 contract and production scope were approved on 2026-10-26. Step 3 implementation, validation, and core code/security reviews are complete.",
     "Prior WIP transfer is historical and did not itself complete step 2.",
-    "Step 3 was published in commit 8064337 and step 4 in commit 2b0af40. Step 5 implementation and worktree validation are complete: existing query and synchronization work from step 2 is preserved; configuration ownership/validation and unused types are addressed. User approval and immediate publication timing are recorded; exact staged-tree independent review and publication remain. Step 6 remains pending.",
+    "Step 3 was published in commit 8064337, step 4 in commit 2b0af40, and step 5 in commit 579d346. Step 6 package/name/comment/document alignment and user-requested functional relationship selection passed worktree lint/test/sampleDataClasses; staged review and publication remain.",
     "Final independent review must approve the exact staged tree; never store the attested tree hash inside this tracked file."
   ]
 }

@@ -1,7 +1,7 @@
 # 목표 시스템
 친구 관리 시스템 구축
 
-> **리팩토링 진행 상태 (2026-10-28):** 1~4번은 `refactor/backend-quality` 브랜치에 게시했습니다. 5번은 구현·전체 검증을 마쳤고 staged tree 독립 리뷰와 게시를 기다립니다. 6번은 미완료입니다. 현재 상태와 사용자 결정은 [상태 기록](agent-context/STATE.json)과 [결정 기록](agent-context/DECISIONS.md)을 참조하세요.
+> **리팩토링 진행 상태 (2026-10-28):** 1~5번은 `refactor/backend-quality` 브랜치에 게시했습니다. 6번은 패키지·이름·주석·문서 정리와 전체 검증을 마쳤고 독립 리뷰·게시를 기다립니다. 현재 상태와 사용자 결정은 [상태 기록](agent-context/STATE.json)과 [결정 기록](agent-context/DECISIONS.md)을 참조하세요.
 
 사용자 인증 기능이 없기에 목록 조회 API는 기본적으로 사용자 아이디 (1L)을 기준으로 조회합니다.
 
@@ -10,12 +10,31 @@
 - **프레임워크**: Spring Boot 3.5.9
 - **데이터베이스**: PostgreSQL 16 (Docker Compose)
 - **동시성/캐시**: Redis 7.4.2 (Redisson)
-- **빌드 도구**: Gradle 8.6
+- **빌드 도구**: Gradle 8.14.3 (wrapper)
 - **ORM**: Spring Data JPA / Hibernate
 
 
 ## 🚀 아키텍처 구성도
-![architecture.png](architecture.png)
+
+아래 흐름은 현재 코드의 책임 경계입니다. 이전 `architecture.png`는 H2 기반 구성과 이전 계층명을 포함하므로 참고 이미지로만 보존합니다.
+
+```mermaid
+flowchart LR
+    Client[HTTP client] --> Limit[RateLimitInterceptor]
+    Limit --> Controller[FriendController]
+    Controller --> Facade[FriendRequestFacade]
+    Controller --> Service[FriendService]
+    Facade --> Lock[Redis friendship lock]
+    Limit --> Rate[RedisRateLimiter]
+    Rate --> Redis[(Redis)]
+    Lock --> Redis
+    Facade --> Service
+    Service --> Postgres[(PostgreSQL)]
+```
+
+친구 신청은 `friendship.presentation.FriendController`에서 시작해
+`friendship.application.FriendRequestFacade`와 `FriendServiceImpl`로 이어집니다.
+잠금은 `friendship.infrastructure.FriendshipLockProvider`, 요청 제한은 `ratelimit` 패키지가 담당합니다.
 ## 🚀 핵심 설계 전략 및 문제 해결
 
 ### 1. 동시성 제어: DB 행 잠금·유일 제약과 Redis 분산 락
@@ -86,8 +105,8 @@
 - DB 자체 장애나 잠금 대기 실패는 HTTP 503 `DATABASE_UNAVAILABLE`로 응답합니다. 서버 오류의
   공개 메시지는 `서버에 문제가 생겼습니다. 잠시 후 다시 시도해주세요.`로 통일합니다.
 
-이 오류 규약은 [FriendController](src/main/java/com/apr/aprbackendassignment/controller/FriendController.java),
-[CommExceptionControllerAdvice](src/main/java/com/apr/aprbackendassignment/common/controllerAdivce/CommExceptionControllerAdvice.java),
+이 오류 규약은 [FriendController](src/main/java/com/apr/aprbackendassignment/friendship/presentation/FriendController.java),
+[CommExceptionControllerAdvice](src/main/java/com/apr/aprbackendassignment/common/advice/CommExceptionControllerAdvice.java),
 그리고 사용자 결정 기록의 `S4-001`에 근거합니다.
 
 ## 🛠 실행 방법
@@ -116,9 +135,10 @@
    ```
 
    Windows PowerShell에서는 `.\gradlew.bat bootRun`을 사용합니다.
-   `ddl-auto: update`로 엔티티에서 PostgreSQL 테이블을 생성·갱신한 다음 `src/main/resources/schema.sql`이 활성 사용자 쌍 유일 인덱스를 설치합니다.
+   `ddl-auto: update`로 엔티티에서 PostgreSQL 테이블을 생성·갱신한 다음, `src/main/resources/schema.sql`이
+   `requested_at`, `approved_at` 열과 활성 사용자 쌍 유일 인덱스를 설치합니다.
    기존 데이터에 같은 사용자 쌍의 활성 관계가 둘 이상 있으면 인덱스 생성이 실패해 애플리케이션 시작이 중단됩니다. 거절 이력을 자동 삭제하거나 이전하지 않습니다.
-   `sql/schema.sql`은 기존 H2용 참고 스키마이며 이 Compose에서는 실행하지 않습니다. 기존 H2 데이터는 자동으로 이전되지 않습니다.
+   저장소 루트의 `sql/schema.sql`은 기존 H2용 참고 스키마이며 이 Compose에서는 실행하지 않습니다. 기존 H2 데이터는 자동으로 이전되지 않습니다.
 
 Swagger UI: http://localhost:8080/swagger-ui.html
 

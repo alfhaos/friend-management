@@ -47,7 +47,4 @@
         <appender-ref ref="FILE"/>
     </root>
 
-    <!-- 패키지별 레벨 -->
-    <logger name="com.example" level="DEBUG"/>
-
 </configuration>

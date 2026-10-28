@@ -11,18 +11,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
-/**
- * =====================================================
- * Class Name   : CommTimeEntity
- * Description  :
- *  - 공통 시간 엔티티를 처리 하는 클래스
- *  - 생성자 ID(createUserId) 필드를 포함
- *
- * 주요 기능
- *  - 생성일 자동 설정: @CreatedDate 어노테이션을 사용하여 엔티티가 생성될 때 자동으로 생성일을 설정
- *  - 생성자 ID 필드 포함: createUserId 필드를 통해 엔티티를 생성한 사용자의 ID를 저장
- * =====================================================
- */
+/** 엔티티 생성·수정 시각을 공통으로 기록한다. */
 @Getter
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener.class)

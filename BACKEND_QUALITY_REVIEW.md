@@ -621,3 +621,32 @@ Repository 인터페이스와 어댑터를 분리하면 의존성 방향을 명�
 검증: `.\gradlew.bat test sampleDataClasses`와 `.\gradlew.bat clean test sampleDataClasses` 모두 성공, 각각 **17건 실패·건너뜀 없이 통과**, 별도 개발 데이터 생성기 컴파일 성공. 요청 제한 메서드 단독 실행도 성공했다. 마지막 전체 실행은 무작위 메서드 순서로 검증했다. 개발 데이터 생성 명령 자체는 실행하지 않았다.
 
 다음 단계는 20절의 2번이다. 재신청 제어 흐름, 수락·거절의 상태 충돌과 사용자별 친구 수 상한 동시성은 이번 완료 범위에 포함하지 않는다. 시간 경계와 기본 1초 요청 제한 창의 만료 검증도 후속 과제로 남는다.
+
+## 22. 실행 이력 — 5번 P2 정리 (2026-10-28)
+
+20절의 **5번: 중복 쿼리·미사용 의존성·설정 책임 정리**를 `579d346`으로
+`refactor/backend-quality`에 게시했다. 이 절은 변경 전 판단을 보존하고, 실제 게시 범위와
+검증 근거만 추가한다.
+
+- 친구 수 상한과 요청 제한 설정을 각각 `FriendLimitProperties`와 `LimitProperties`가 소유하게 했다.
+  기존 `limit.*` 키는 유지하고, 양수 값 및 제한 경로의 시작 검증을 추가했다.
+- 요청 제한 인터셉터는 설정된 경로에만 등록하고, 내부의 중복 경로 판별을 제거했다.
+  기존 Redis 키가 최초 예산을 유지하는 정책은 사용자 결정 S5-REDIS-POLICY에 따라 보존했다.
+- 호출자가 없는 `UsersDto`, `WindowResponse`를 삭제했다.
+- 실제 실행: `.\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache`는 exit 0,
+  20개 suite·84개 test에서 실패·오류·건너뜀 0이었다. 동일 staged tree
+  `b21938ef51019287a3c0f66f857e0a228f1a2934`는 독립 코드·보안 리뷰에서 수정 필요 0건이었다.
+
+## 23. 실행 이력 — 6번 P3 정리와 작업 트리 검증 (2026-10-28)
+
+20절의 **6번: 도메인별 패키지·이름·주석·문서 정리**에서 친구 관계·사용자·요청 제한 코드를
+책임별 패키지로 옮기고 내부 타입 5개의 이름을 정리했다. 테스트·fixture·샘플 데이터 import와
+Springdoc 스캔 경로·Gradle 샘플 mainClass를 맞췄으며, 무효 Logback logger와 틀린 주석을
+정리했다. 사용자 요청에 따라 `FriendServiceImpl.requestFriend`의 관계 탐색 두 곳은
+`stream().filter().findFirst()`로 표현하고 상태 변경은 순회 밖에 유지했다.
+
+OpenAPI 신청 경로 확인 테스트를 추가했다. 실제 작업 트리 실행
+`.\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache`는 exit 0,
+20개 suite·85개 test에서 실패·오류·건너뜀 0이었다. 공개 HTTP·JSON·오류 코드, DB 스키마·
+enum literal, Redis 정책과 트랜잭션은 유지한다. 최종 staged tree 독립 리뷰와 게시 결과는
+아직 확인 전이다. 개발 DB에 쓰는 `seedSampleData`는 실행하지 않았다.

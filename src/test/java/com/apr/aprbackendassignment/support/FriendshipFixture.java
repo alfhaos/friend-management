@@ -1,10 +1,10 @@
 package com.apr.aprbackendassignment.support;
 
-import com.apr.aprbackendassignment.model.constant.FRIENDSHIP_STATUS;
-import com.apr.aprbackendassignment.model.entity.Friendship;
-import com.apr.aprbackendassignment.model.entity.Users;
-import com.apr.aprbackendassignment.repository.FriendshipJPARepository;
-import com.apr.aprbackendassignment.repository.UsersJPARepository;
+import com.apr.aprbackendassignment.friendship.domain.FRIENDSHIP_STATUS;
+import com.apr.aprbackendassignment.friendship.domain.Friendship;
+import com.apr.aprbackendassignment.friendship.infrastructure.FriendshipJPARepository;
+import com.apr.aprbackendassignment.user.domain.Users;
+import com.apr.aprbackendassignment.user.infrastructure.UsersJPARepository;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.time.LocalDateTime;

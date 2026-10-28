@@ -1,7 +1,7 @@
 # 단계별 리팩토링 계획
 
-기준: `BACKEND_QUALITY_REVIEW.md` 20절. **1~4번은 게시됐고 5번은 구현·전체 검증을
-마쳐 staged tree 독립 리뷰와 게시를 기다린다. 6번은 미완료다.** 아래 표는 단계별 계약이며
+기준: `BACKEND_QUALITY_REVIEW.md` 20절. **1~5번은 게시됐고 6번은 구현·전체 검증 후
+독립 리뷰 단계다.** 아래 표는 단계별 계약이며
 완료 보고가 아니다. 상태의 기계 판독 기준은 `STATE.json`, 근거는 실제 검증/리뷰 기록이다.
 
 경로는 `src/main/java/com/apr/aprbackendassignment/`를 기준으로 적는다. 소유권은 단계가
@@ -14,7 +14,7 @@
 | 3 — P2 | 엔티티 생성·상태 전이 메서드, 업무 시각 정리 / 2의 동시성·정책 계약 | ddd: 상태 전이표·식별·시각; backend: `model/entity/Friendship.java`, `model/constant/FRIENDSHIP_STATUS.java`, 서비스 행위 호출, 시각 조회·정렬·DTO, 필요 스키마; test: 도메인/통합 테스트 | 임의 상태/참여자 변경 대신 신청·수락·거절·재신청 행위가 규칙 보호. 자기 신청·수신자 권한·허용 상태 검사. 업무 시각과 감사 시각 구분 및 고정 시간 경계·실제 수락순서 검증 |
 | 4 — P2 | 서비스와 HTTP 오류·입력 타입 분리 / 3의 업무 오류 계약 | backend: 서비스, `controller/FriendController.java`, `common/controllerAdivce/CommExceptionControllerAdvice.java`, `common/exception/**`, `common/response/**`, `common/request/PageRequestParam.java`, 관련 DTO/enum; test: API 경계 테스트 | 서비스가 HTTP 응답 상태를 선택하지 않음. UUID는 API 경계에서 검사. 입력/업무/충돌/시스템 오류 매핑 구분. 잘못된 UUID·누락 헤더·권한·상태 오류의 코드와 응답 필드 확인 |
 | 5 — P2 | 중복 쿼리·미사용 의존성·설정 책임 정리 / 4의 소유 경계 | backend: repository/서비스 중복, `util/{LimitProperties,RedisRateLimiter}.java`, `common/interceptor/LimitInterceptor.java`, `config/WebConfig.java`, 미사용 DTO; test: 제한·설정·조회 회귀 | 규칙·조회에 명확한 소유자. 중복 조회 제거 시 존재 검사/잠금 목적 보존. 양수 설정 시작 시 검증. 사용자 간 격리·만료·경쟁 검증 후 전역 synchronized 제거 여부 결정 |
-| 6 — P3 | 도메인별 패키지·이름·주석·문서 정리 / 1~5 검증 후 | backend: 프로덕션 패키지 이동/참조 단독 소유; test: 테스트 import/패키지 대응; docs: README/리뷰 실행 이력·설계 문서. 로그 설정/샘플 mainClass도 조정 | 실제 책임에 맞는 코드 위치·이름·주석·문서. 동작 변경과 대규모 이동을 한 패치에 섞지 않음. lint·전체 테스트·sampleDataClasses 성공 및 최종 독립 리뷰 수정 필요 0건 |
+| 6 — P3 | 도메인별 패키지·이름·주석·문서 정리 / 1~5 검증 후 | backend: 프로덕션 패키지 이동/참조 단독 소유; test: 테스트 import/패키지 대응; docs: README/리뷰 실행 이력·설계 문서. 로그 설정/샘플 mainClass도 조정 | 실제 책임에 맞는 코드 위치·이름·주석·문서. 사용자 요청에 따른 관계 탐색의 함수형 표현은 기존 동작을 보존. lint·전체 테스트·sampleDataClasses 성공 및 최종 독립 리뷰 수정 필요 0건 |
 
 단계 2와 3은 필요한 작은 계약 변경만 묶을 수 있다. 이 경우 두 단계의 완료 기준을
 각각 증명한다. 패키지 이동부터 시작하지 않는다. API 공개 계약 변경은 별도 근거와

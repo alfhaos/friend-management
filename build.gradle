@@ -79,7 +79,7 @@ tasks.register('seedSampleData', JavaExec) {
     group = 'application'
     description = 'Insert development sample data into the configured database (explicit opt-in).'
     classpath = sourceSets.sampleData.runtimeClasspath
-    mainClass = 'com.apr.aprbackendassignment.sampleData.SampleDataInsert'
+    mainClass = 'com.apr.aprbackendassignment.sampledata.SampleDataInsert'
 }
 
 checkstyle {

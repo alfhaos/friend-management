@@ -43,7 +43,7 @@ springdoc:
   default-consumes-media-type: application/json
   default-produces-media-type: application/json
   packages-to-scan:
-    - com.apr.aprbackendassignment.controller
+    - com.apr.aprbackendassignment.friendship.presentation
 
 # ================== REQUEST 제한 설정 ==================
 limit:
