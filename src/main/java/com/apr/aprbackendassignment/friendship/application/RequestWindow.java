@@ -25,7 +25,7 @@ public enum RequestWindow {
     WEEK("7d", 7),
     MONTH("30d", 30),
     NINETY_DAY("90d", 90),
-    OVER("over", 0);
+    OVER("over", 90);
 
     private final String code;
     private final int codeDate;
@@ -40,9 +40,6 @@ public enum RequestWindow {
     }
 
     public LocalDateTime calculateTimeWindow(LocalDateTime now) {
-        if (this == OVER) {
-            return null; // 전체 조회용
-        }
         return now.minusDays(codeDate);
     }
 }

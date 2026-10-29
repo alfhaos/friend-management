@@ -65,15 +65,16 @@ flowchart LR
 ## 📋 API 명세 상세 정리
 - 친구 목록 조회:
   - 친구 관계 상태가 ACCEPTED인 항목만 페이징 처리하여 반환.
-  - 응답의 `userId`는 친구의 사용자 ID이며, `fromUserId`와 `toUserId`는 각각 발신자와 수신자의 ID입니다.
+  - 응답의 `user_id`는 친구의 사용자 ID이며, `from_user_id`와 `to_user_id`는 각각 발신자와 수신자의 ID입니다.
   - 응답의 `approvedAt`은 수락 시 `approved_at`에 저장한 실제 수락 시각입니다. `approvedAt` 정렬 키도 이 수락 시각을 사용합니다.
   - 일반 수정 시각은 감사 필드 `updatedTime`으로 관리하며, 수락 시각과 별도로 보관합니다.
   
 - 받은 요청 목록:
   - `window` 쿼리 파라미터로 기간 필터 적용(1d, 7d, 30d, 90d, over).
   - 페이징 파라미터는 page(0-based), maxSize(1~100), sort(field,dir) 형식으로 받습니다.
-  - response의 `requestId`는 Friendship의 UUID, `requestUserId`는 요청자 ID, `requestedAt`은 신청 시각입니다. 같은 방향으로 재신청하면 새 신청 시각을 사용합니다. `requested_at`이 없는 기존 행은 `created_time`을 사용합니다.
-  - `window=over`일 때는 기간 제한 없이 전체 요청을 조회합니다.
+  - 응답 `data`는 `window`, `totalCount`, `items`를 포함합니다. `window`는 요청 기간 코드(예: `1d`)입니다.
+  - 항목의 `request_id`는 Friendship의 UUID, `request_user_id`는 요청자 ID, `requestedAt`은 신청 시각입니다. 같은 방향으로 재신청하면 새 신청 시각을 사용합니다. `requested_at`이 없는 기존 행은 `created_time`을 사용합니다.
+  - `window=over`일 때는 현재 시각보다 90일 넘게 이전에 받은 요청만 조회합니다. 정확히 90일 전 요청은 제외합니다.
   
 - 친구 신청:
   - 요청 헤더 `X-user-Id`와 body의 `targetUserId`로 요청자/대상자를 구분합니다.
@@ -102,6 +103,8 @@ flowchart LR
   이미 처리된 요청의 수락·거절은 HTTP 400 `REQUEST_STATUS_ERROR`로 응답합니다.
 - 활성 친구 요청의 DB 유일 제약 충돌은 HTTP 409 `FRIEND_REQUEST_CONFLICT`로 응답합니다.
   Redis 락을 얻지 못해 같은 요청이 처리 중이면 HTTP 423 `CONCURRENT_FRIEND_REQUEST`로 응답합니다.
+- 이미 처리 대기 중인 요청은 HTTP 400 `ALREADY_REQUESTED_FRIENDSHIP`, 이미 친구인 경우는
+  HTTP 409 `ALREADY_REQUESTED_FRIEND`와 `이미 친구입니다.` 메시지로 응답합니다.
 - DB 자체 장애나 잠금 대기 실패는 HTTP 503 `DATABASE_UNAVAILABLE`로 응답합니다. 서버 오류의
   공개 메시지는 `서버에 문제가 생겼습니다. 잠시 후 다시 시도해주세요.`로 통일합니다.
 
@@ -111,24 +114,23 @@ flowchart LR
 
 ## 🛠 실행 방법
 
-1. **PostgreSQL 실행** (프로젝트 루트):
+1. **PostgreSQL·Redis 실행** (프로젝트 루트):
 
    ```bash
    docker compose up -d --build --wait
    docker compose ps
    ```
 
-   공식 PostgreSQL 이미지를 사용하므로 별도 Dockerfile 빌드는 필요하지 않습니다.
+   Compose는 PostgreSQL 16과 Redis 7.4.2를 함께 실행합니다. 별도 Dockerfile 빌드는 필요하지 않습니다.
    기본 접속 정보는 `localhost:5432`, DB `apr`, 사용자 `apr`, 비밀번호 `apr_local_password`입니다.
    비밀번호는 로컬 개발용 기본값입니다. `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_PORT` 환경변수로 변경할 수 있습니다.
    변경한 환경변수는 Compose와 애플리케이션 실행 환경 모두에 동일하게 전달해야 합니다.
    Compose의 `.env` 파일은 애플리케이션에서 자동으로 읽지 않습니다.
    데이터는 프로젝트 전용 `postgres-data` 볼륨에 보관되며, `docker compose down`으로 컨테이너를 종료해도 유지됩니다.
    DB 이름과 계정 환경변수는 볼륨을 처음 초기화할 때 적용됩니다. 기존 볼륨의 계정은 환경변수만 바꿔도 변경되지 않습니다.
+   Redis는 `localhost:6379`로 연결합니다.
 
-2. **Redis 준비**: 애플리케이션은 `localhost:6379`의 Redis를 사용합니다. 이번 Compose에는 PostgreSQL만 포함되어 있습니다.
-
-3. **애플리케이션 실행**:
+2. **애플리케이션 실행**:
 
    ```bash
    ./gradlew bootRun
@@ -137,8 +139,22 @@ flowchart LR
    Windows PowerShell에서는 `.\gradlew.bat bootRun`을 사용합니다.
    `ddl-auto: update`로 엔티티에서 PostgreSQL 테이블을 생성·갱신한 다음, `src/main/resources/schema.sql`이
    `requested_at`, `approved_at` 열과 활성 사용자 쌍 유일 인덱스를 설치합니다.
+   이 SQL 파일은 PostgreSQL 전체 생성 DDL이 아니라 Hibernate 테이블 생성 후 적용하는 증분 스크립트입니다.
+   새 빈 DB를 수동으로 준비할 때 사용할 전체 DDL은 [PostgreSQL 스키마](sql/postgresql-schema.sql)입니다.
+   이 파일은 애플리케이션이 자동 실행하지 않으며 기존 데이터가 있는 DB에 적용하는 이관 스크립트가 아닙니다.
    기존 데이터에 같은 사용자 쌍의 활성 관계가 둘 이상 있으면 인덱스 생성이 실패해 애플리케이션 시작이 중단됩니다. 거절 이력을 자동 삭제하거나 이전하지 않습니다.
    저장소 루트의 `sql/schema.sql`은 기존 H2용 참고 스키마이며 이 Compose에서는 실행하지 않습니다. 기존 H2 데이터는 자동으로 이전되지 않습니다.
+
+3. **개발 데이터 생성 (선택)**: 빈 DB에서 목록 API를 시연할 때만 아래 명령을 실행합니다.
+   **현재 설정된 개발 DB에 데이터를 추가**하며, 실행할 때마다 새 데이터가 쌓입니다.
+
+   ```powershell
+   .\gradlew.bat seedSampleData --args='100'
+   ```
+
+   기본값은 100건이며 1~10,000건을 지정할 수 있습니다. 새 수신자 1명과 요청자·요청을 만들고,
+   요청 시각을 0·6·29·89·120일 전으로 나눕니다. 생성된 수신자 ID는 로그에서 확인할 수 있습니다.
+   고정 사용자 ID나 기존 데이터에 의존하지 않습니다.
 
 Swagger UI: http://localhost:8080/swagger-ui.html
 
@@ -148,6 +164,12 @@ Docker가 실행 중인 상태에서 프로젝트 루트에서 실행합니다.
 
 ```powershell
 .\gradlew.bat test
+```
+
+Docker 없이 도메인·기간 계산 단위 테스트만 빠르게 실행하려면 다음 명령을 사용합니다.
+
+```powershell
+.\gradlew.bat test --tests '*FriendshipTest' --tests '*RequestWindowTest' --tests '*FriendRequestWindowBoundaryTest'
 ```
 
 테스트는 Testcontainers로 PostgreSQL 16과 Redis 7.4.2를 임의의 호스트 포트에서 실행합니다.
@@ -172,17 +194,6 @@ Facade의 실제 서비스 커밋과 작업 스레드의 결과를 별도 트랜
 테스트 프로필의 제한 시간 창만 60초로 설정하고, 허용 횟수·초과 응답·사용자 간 격리를 검증합니다.
 수락·거절 경쟁, 공유 사용자의 친구 수 상한 경쟁, Redis 장애·락 TTL 만료, DB 제약과 409·503 응답은 별도 통합 테스트에서 확인합니다.
 결과 보고서는 `build/reports/tests/test/index.html`에 생성됩니다.
-
-개발용 샘플 생성은 검증 테스트와 별도 source set으로 분리했습니다. 아래 명령은 **현재 설정된 개발 DB에 데이터를 추가**하며,
-DB와 Redis를 준비한 뒤 필요한 경우에만 명시적으로 실행합니다.
-
-```powershell
-.\gradlew.bat seedSampleData --args='100'
-```
-
-기본값은 100건이며 1~10,000건을 지정할 수 있습니다. 새 수신자 1명과 요청자·요청을 만들고,
-요청 시각을 0·6·29·89·120일 전으로 나눕니다. 생성된 수신자 ID는 로그에서 확인할 수 있습니다.
-이 명령은 실행할 때마다 데이터를 추가하며 고정 사용자 ID나 기존 데이터에 의존하지 않습니다.
 
 ## 리팩토링 에이전트 실행
 

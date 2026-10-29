@@ -55,7 +55,7 @@ class FriendRequestLockExpiryTest extends IntegrationTestSupport {
             List<String> outcomes = ConcurrentResults.collect(List.of(blocker, forward, reverse), 15);
             assertThat(outcomes.get(0)).isEqualTo("BLOCKED");
             List<String> results = outcomes.subList(1, outcomes.size());
-            assertThat(results).containsExactlyInAnyOrder("SUCCESS", "ALREADY_RREQUESTED_FRIENDSHIP");
+            assertThat(results).containsExactlyInAnyOrder("SUCCESS", "ALREADY_REQUESTED_FRIENDSHIP");
             assertThat(friendships.findAll()).hasSize(1);
             assertThat(friendships.findAll().getFirst().getStatus()).isEqualTo(REQUESTED);
         } finally {

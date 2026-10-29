@@ -3,12 +3,15 @@ package com.apr.aprbackendassignment.friendship.presentation;
 import com.apr.aprbackendassignment.common.response.CommResponse;
 import com.apr.aprbackendassignment.common.response.CommResponseStatus;
 import com.apr.aprbackendassignment.common.response.PageResponse;
+import com.apr.aprbackendassignment.common.response.WindowResponse;
 import com.apr.aprbackendassignment.friendship.application.FriendRequestFacade;
 import com.apr.aprbackendassignment.friendship.application.FriendService;
 import com.apr.aprbackendassignment.friendship.application.FriendsRequestsResponse;
 import com.apr.aprbackendassignment.friendship.application.FriendsResponse;
 import com.apr.aprbackendassignment.friendship.application.RequestWindow;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
@@ -47,7 +50,8 @@ public class FriendController {
 
     @Operation(summary = "친구 목록 조회")
     @GetMapping
-    public CommResponse<PageResponse<?>> getFriendsList(@Valid @ParameterObject PageRequestParam param) {
+    public CommResponse<PageResponse<FriendsResponse>> getFriendsList(
+            @Valid @ParameterObject PageRequestParam param) {
 
         Pageable pageable = param.toPageable();
 
@@ -57,14 +61,18 @@ public class FriendController {
     }
     @Operation(summary = "받은 친구 신청 목록 조회")
     @GetMapping("/requests")
-    public CommResponse<PageResponse<?>> getReceiveFriendsList(@Valid @ParameterObject PageRequestParam param
-            , @RequestParam("window") String windowParam) {
+    public CommResponse<WindowResponse<FriendsRequestsResponse>> getReceiveFriendsList(
+            @Valid @ParameterObject PageRequestParam param,
+            @Parameter(description = "조회 기간", schema = @Schema(
+                    allowableValues = {"1d", "7d", "30d", "90d", "over"}))
+            @RequestParam("window") String windowParam) {
 
         Pageable pageable = param.toPageable();
         RequestWindow requestWindow = RequestWindow.from(windowParam);
 
-        PageResponse<FriendsRequestsResponse> pageResponse = friendService.getReceiveFriendsList(pageable, requestWindow);
-        return CommResponse.success(pageResponse);
+        WindowResponse<FriendsRequestsResponse> response =
+                friendService.getReceiveFriendsList(pageable, requestWindow);
+        return CommResponse.success(response);
     }
     @Operation(summary = "친구 신청")
     @PostMapping("/request")

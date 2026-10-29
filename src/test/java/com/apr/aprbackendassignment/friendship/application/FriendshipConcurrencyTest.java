@@ -39,7 +39,7 @@ class FriendshipConcurrencyTest extends IntegrationTestSupport {
                 () -> facade.requestFriend(requester.getId(), receiver.getId()));
 
         assertThat(race(request, request)).containsExactlyInAnyOrder(
-                CommResponseStatus.SUCCESS, CommResponseStatus.ALREADY_RREQUESTED_FRIENDSHIP);
+                CommResponseStatus.SUCCESS, CommResponseStatus.ALREADY_REQUESTED_FRIENDSHIP);
         assertThat(friendships.count()).isEqualTo(1);
         Friendship stored = friendships.findByRequesterIdAndReceiverId(requester.getId(), receiver.getId());
         assertThat(stored.getStatus()).isEqualTo(REQUESTED);
@@ -57,7 +57,7 @@ class FriendshipConcurrencyTest extends IntegrationTestSupport {
 
         assertThat(outcomes.get(0)).isEqualTo(CommResponseStatus.SUCCESS);
         assertThat(outcomes.get(1)).isIn(
-                CommResponseStatus.SUCCESS, CommResponseStatus.ALREADY_RREQUESTED_FRIENDSHIP);
+                CommResponseStatus.SUCCESS, CommResponseStatus.ALREADY_REQUESTED_FRIENDSHIP);
         Friendship stored = friendships.findById(original.getId()).orElseThrow();
         assertThat(friendships.count()).isEqualTo(1);
         assertThat(stored.getId()).isEqualTo(original.getId());

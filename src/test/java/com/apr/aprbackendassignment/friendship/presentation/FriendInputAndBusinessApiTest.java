@@ -146,6 +146,35 @@ class FriendInputAndBusinessApiTest extends IntegrationTestSupport {
         assertThat(friendships.count()).isEqualTo(1);
     }
 
+    @Test
+    void existingAcceptedFriendshipUsesTheDocumentedConflictMessage() throws Exception {
+        Users requester = fixture.user("requester");
+        Users receiver = fixture.user("receiver");
+        fixture.relationship(requester, receiver, FRIENDSHIP_STATUS.ACCEPTED);
+
+        mockMvc.perform(post("/api/friends/request")
+                        .header("X-user-Id", requester.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"targetUserId\":" + receiver.getId() + "}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ALREADY_REQUESTED_FRIEND"))
+                .andExpect(jsonPath("$.message").value("이미 친구입니다."));
+    }
+
+    @Test
+    void existingPendingFriendshipUsesTheCorrectedPublicErrorCode() throws Exception {
+        Users requester = fixture.user("requester");
+        Users receiver = fixture.user("receiver");
+        fixture.relationship(requester, receiver, FRIENDSHIP_STATUS.REQUESTED);
+
+        mockMvc.perform(post("/api/friends/request")
+                        .header("X-user-Id", requester.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"targetUserId\":" + receiver.getId() + "}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("ALREADY_REQUESTED_FRIENDSHIP"));
+    }
+
     private Map<String, Object> snapshot(Friendship friendship) {
         return jdbc.queryForMap("SELECT requester_id, receiver_id, status, requested_at, approved_at, updated_time "
                 + "FROM friendship WHERE id = ?", friendship.getId());

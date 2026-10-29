@@ -16,6 +16,6 @@ class RequestWindowTest {
         assertThat(RequestWindow.WEEK.calculateTimeWindow(now)).isEqualTo(now.minusDays(7));
         assertThat(RequestWindow.MONTH.calculateTimeWindow(now)).isEqualTo(now.minusDays(30));
         assertThat(RequestWindow.NINETY_DAY.calculateTimeWindow(now)).isEqualTo(now.minusDays(90));
-        assertThat(RequestWindow.OVER.calculateTimeWindow(now)).isNull();
+        assertThat(RequestWindow.OVER.calculateTimeWindow(now)).isEqualTo(now.minusDays(90));
     }
 }

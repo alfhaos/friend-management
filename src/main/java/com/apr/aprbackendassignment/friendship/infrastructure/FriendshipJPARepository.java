@@ -50,13 +50,17 @@ public interface FriendshipJPARepository extends JpaRepository<Friendship, UUID>
             Pageable pageable
             );
 
-    default Page<Friendship> getFriendsReceiveList(Long currentUserId, LocalDateTime start,
-                                                  LocalDateTime end, Pageable pageable) {
-        if (start == null) {
-            return findByReceiverIdAndStatus(currentUserId, FRIENDSHIP_STATUS.REQUESTED, pageable);
-        }
-        return getFriendsReceiveListInWindow(currentUserId, start, end, pageable);
-    }
+    @Query("""
+    SELECT f
+    FROM Friendship f
+    WHERE f.receiver.id = :userId
+      AND COALESCE(f.requestedAt, f.createdTime) < :before
+      AND f.status = 'REQUESTED'
+    """)
+    Page<Friendship> getFriendsReceiveListBefore(
+            @Param("userId") Long currentUserId,
+            @Param("before") LocalDateTime before,
+            Pageable pageable);
 
     Page<Friendship> findByReceiverIdAndStatus(Long id, FRIENDSHIP_STATUS status, Pageable pageable);
 

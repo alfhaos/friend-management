@@ -114,20 +114,35 @@ class FriendServiceImplTest extends IntegrationTestSupport {
     }
 
     @Test
-    void listsAllIncomingRequestsWithoutTimeWindowInRequestOrder() {
+    void overWindowIncludesOnlyRequestsStrictlyBeforeTheNinetyDayBoundary() {
+        Users receiver = fixture.user("receiver");
+        LocalDateTime boundary = LocalDateTime.of(2025, 5, 24, 12, 0);
+        Friendship older = fixture.relationshipAt(fixture.user("older"), receiver, REQUESTED,
+                boundary.minusSeconds(1));
+        fixture.relationshipAt(fixture.user("at-boundary"), receiver, REQUESTED, boundary);
+        fixture.relationshipAt(fixture.user("newer"), receiver, REQUESTED, boundary.plusSeconds(1));
+
+        var page = friendships.getFriendsReceiveListBefore(receiver.getId(), boundary,
+                new PageRequestParam(0, 30, "requestedAt,desc").toPageable());
+
+        assertThat(page.getContent()).extracting(Friendship::getId).containsExactly(older.getId());
+    }
+
+    @Test
+    void listsOnlyIncomingRequestsOlderThanNinetyDaysInRequestOrder() {
         Users current = currentListUser();
         Users old = fixture.user("old");
         Users recent = fixture.user("recent");
         LocalDateTime now = LocalDateTime.now();
         Friendship olderRequest = fixture.relationshipAt(old, current, REQUESTED, now.minusDays(120));
-        Friendship newerRequest = fixture.relationshipAt(recent, current, REQUESTED, now.minusMinutes(1));
+        fixture.relationshipAt(recent, current, REQUESTED, now.minusMinutes(1));
 
         var response = friendService.getReceiveFriendsList(
                 new PageRequestParam(0, 30, "requestedAt,desc").toPageable(), RequestWindow.OVER);
 
-        assertThat(response.getTotalCount()).isEqualTo(2);
+        assertThat(response.getTotalCount()).isEqualTo(1);
         assertThat(response.getItems()).extracting(FriendsRequestsResponse::getRequestId)
-                .containsExactly(newerRequest.getId().toString(), olderRequest.getId().toString());
+                .containsExactly(olderRequest.getId().toString());
     }
 
     @Test
@@ -171,7 +186,7 @@ class FriendServiceImplTest extends IntegrationTestSupport {
         Users receiver = fixture.user("receiver");
         Friendship original = fixture.relationship(requester, receiver, REQUESTED);
         assertFailure(() -> facade.requestFriend(receiver.getId(), requester.getId()),
-                FriendshipError.ALREADY_RREQUESTED_FRIENDSHIP);
+                FriendshipError.ALREADY_REQUESTED_FRIENDSHIP);
         assertThat(friendships.count()).isEqualTo(1);
         assertThat(reload(original).getStatus()).isEqualTo(REQUESTED);
     }
@@ -243,7 +258,7 @@ class FriendServiceImplTest extends IntegrationTestSupport {
         assertThat(friendships.count()).isEqualTo(2);
 
         assertFailure(() -> facade.requestFriend(second.getId(), first.getId()),
-                FriendshipError.ALREADY_RREQUESTED_FRIENDSHIP);
+                FriendshipError.ALREADY_REQUESTED_FRIENDSHIP);
         assertThat(friendships.count()).isEqualTo(2);
     }
 
@@ -318,7 +333,7 @@ class FriendServiceImplTest extends IntegrationTestSupport {
             start.countDown();
             assertThat(ConcurrentResults.collect(List.of(forward, reverse), 15))
                     .containsExactlyInAnyOrder(CommResponseStatus.SUCCESS,
-                            CommResponseStatus.ALREADY_RREQUESTED_FRIENDSHIP);
+                            CommResponseStatus.ALREADY_REQUESTED_FRIENDSHIP);
             var pair = friendships.findAll().stream()
                     .filter(f -> (f.getRequester().getId().equals(first.getId())
                             && f.getReceiver().getId().equals(second.getId()))

@@ -1,7 +1,7 @@
 package com.apr.aprbackendassignment.friendship.application;
 
-import com.apr.aprbackendassignment.friendship.domain.FRIENDSHIP_STATUS;
 import com.apr.aprbackendassignment.friendship.domain.Friendship;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -25,10 +25,12 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class FriendsResponse {
 
+    @JsonProperty("user_id")
     private Long userId;
+    @JsonProperty("from_user_id")
     private Long fromUserId;
+    @JsonProperty("to_user_id")
     private Long toUserId;
-    private FRIENDSHIP_STATUS status;
     private LocalDateTime approvedAt;
 
     // 친구 목록 조회에서 friendshipPage 를 FriendshipDto Page 로 변환

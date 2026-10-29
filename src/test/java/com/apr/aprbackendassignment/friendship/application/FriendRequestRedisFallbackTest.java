@@ -44,7 +44,7 @@ class FriendRequestRedisFallbackTest extends IntegrationTestSupport {
             assertThat(ready.await(10, TimeUnit.SECONDS)).as("both workers ready").isTrue();
             start.countDown();
             List<String> results = ConcurrentResults.collect(List.of(forward, reverse), 15);
-            assertThat(results).containsExactlyInAnyOrder("SUCCESS", "ALREADY_RREQUESTED_FRIENDSHIP");
+            assertThat(results).containsExactlyInAnyOrder("SUCCESS", "ALREADY_REQUESTED_FRIENDSHIP");
             assertThat(friendships.findAll()).hasSize(1);
             assertThat(friendships.findAll().getFirst().getStatus()).isEqualTo(REQUESTED);
         } finally {

@@ -1,6 +1,7 @@
 package com.apr.aprbackendassignment.friendship.application;
 
 import com.apr.aprbackendassignment.friendship.domain.Friendship;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -24,7 +25,9 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class FriendsRequestsResponse {
 
+    @JsonProperty("request_id")
     private String requestId;
+    @JsonProperty("request_user_id")
     private Long requestUserId;
     private LocalDateTime requestedAt;
 

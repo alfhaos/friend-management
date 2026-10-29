@@ -30,6 +30,10 @@
 | S5-PROD-APPROVAL | 두 DTO 삭제 외에 `STEP5-PREPARATION.md`의 `LimitProperties.java`, 신규 `FriendLimitProperties.java`, `FriendServiceImpl.java`, `WebConfig.java`, `LimitInterceptor.java` 설정 분리·검증·경로 등록 변경을 승인할지. 기존 설정 키·공개 HTTP 응답·Redis 키 정책은 유지한다. | 첫 답변 “삭제 승인”의 범위를 확인한 뒤 “다 승인한다고”로 나머지 제안 파일·예상 동작까지 승인했다. | 5번 남은 프로덕션 생성·수정과 테스트 | 2026-10-27 승인 |
 | S5-PUBLISH | 현재 게이트에는 5번 단독 scope가 없다. 5번 완료 후 `step-5-checkpoint`를 추가해 전용 브랜치에 게시할지, 6번까지 완료한 뒤 `full-refactor`로 게시할지. | “3. 바로 게시” — 5번 완료 후 전용 브랜치에 게시. | 5번 게시 범위·시점·게이트 문서/스크립트 | 2026-10-27 확정 |
 | S5-REDIS-POLICY | 실제 테스트 Redis에서 기존 제한 키에 rate 1 설정 후 rate 2로 `trySetRate`를 호출하면 false이고 허용 횟수는 최초 1회로 유지됐다. 이 기존 정책을 보존할지, 재시작 후 설정 변경을 기존 키에 반영하는 방식을 5번에 추가할지. | “2. 그대로둬” — 기존 최초 예산 유지 동작 보존. | 5번 Redis 제한 정책·설정·테스트·게시 | 2026-10-27 확정 |
+| RPT-001 | `ASSESSMENT_REPORT.md`와 요구사항 PDF 4-1·4-2: `/requests`의 `window`·`totalCount`·`items`와 두 목록의 ID `snake_case`를 PDF 응답 형태로 교체할지, 기존 응답 필드도 병행할지 | “전부 A” — PDF 응답 형태로 교체하고 기존 필드를 병행하지 않는다. | 공개 JSON 계약·DTO·컨트롤러·API 테스트 | 2026-10-29 확정 |
+| RPT-002 | PDF의 `over`가 90일 초과 요청만 뜻하는지, 기존처럼 전체 기간을 뜻하는지 | “전부 A” — 현재 시각 기준 90일보다 오래된 요청만 조회한다. | 받은 요청 조회 필터·응답·테스트·README | 2026-10-29 확정 |
+| RPT-003 | 공개 오류 코드 `ALREADY_RREQUESTED_FRIENDSHIP` 오타와 이미 친구인 상태의 메시지를 교정할지, 기존 클라이언트 호환을 위해 유지할지 | “전부 A” — 공개 코드 오타와 메시지를 모두 수정한다. | 예외 응답·클라이언트 계약·API 테스트 | 2026-10-29 확정 |
+| RPT-004 | 현재 PostgreSQL은 `ddl-auto: update`로 테이블을 만들고 `src/main/resources/schema.sql`은 증분 인덱스를 설치한다. 권위 있는 DDL로 재구성할지, 기존 데이터 보호를 위해 현행을 유지하고 문서만 명확히 할지 | “전부 A” — 새 DB용 PostgreSQL 전체 DDL을 추가하고 기존 런타임 기동·기존 데이터 처리 방식은 유지한다. | DB 초기화·기존 개발 데이터·스키마 문서·검증 | 2026-10-29 확정 |
 
 후속 단계의 미확정 정책이 나타나면 여기와 `STATE.json`에 ID·질문·영향 단계를
 추가한다. 사용자 답변을 받은 뒤 원문 취지·날짜·결정 근거를 기록하고 의존 작업을 재개한다.

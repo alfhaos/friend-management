@@ -1,6 +1,7 @@
 package com.apr.aprbackendassignment.friendship.application;
 
 import com.apr.aprbackendassignment.common.response.PageResponse;
+import com.apr.aprbackendassignment.common.response.WindowResponse;
 import com.apr.aprbackendassignment.friendship.domain.FRIENDSHIP_STATUS;
 import com.apr.aprbackendassignment.friendship.domain.Friendship;
 import com.apr.aprbackendassignment.friendship.domain.FriendshipError;
@@ -56,18 +57,20 @@ public class FriendServiceImpl implements FriendService {
     }
     @Transactional(readOnly = true)
     @Override
-    public PageResponse<FriendsRequestsResponse> getReceiveFriendsList(Pageable pageable, RequestWindow requestWindow) {
+    public WindowResponse<FriendsRequestsResponse> getReceiveFriendsList(
+            Pageable pageable, RequestWindow requestWindow) {
         Users currentUser = getUserOrThrow(CURRENT_USER_ID);
 
         LocalDateTime now = LocalDateTime.now(clock);
-        LocalDateTime time = requestWindow.calculateTimeWindow(now);
-        LocalDateTime start = time != null ? time.toLocalDate().atStartOfDay() : null;
-        LocalDateTime end = time != null ? now : null;
-
-        Page<Friendship> result = friendshipJPARepository.getFriendsReceiveList(currentUser.getId(), start, end, pageable);
+        LocalDateTime boundary = requestWindow.calculateTimeWindow(now);
+        Page<Friendship> result = requestWindow == RequestWindow.OVER
+                ? friendshipJPARepository.getFriendsReceiveListBefore(
+                        currentUser.getId(), boundary, pageable)
+                : friendshipJPARepository.getFriendsReceiveListInWindow(
+                        currentUser.getId(), boundary, now, pageable);
         Page<FriendsRequestsResponse> dtoPage =  FriendsRequestsResponse.fromEntityPage(result);
-        return new PageResponse<>(
-                dtoPage.getTotalPages(),
+        return new WindowResponse<>(
+                requestWindow.getCode(),
                 (int) dtoPage.getTotalElements(),
                 dtoPage.getContent()
         );
@@ -92,7 +95,7 @@ public class FriendServiceImpl implements FriendService {
                 .orElse(null);
         if (existingRelationship != null) {
             FriendshipError error = existingRelationship.getStatus() == FRIENDSHIP_STATUS.REQUESTED
-                    ? FriendshipError.ALREADY_RREQUESTED_FRIENDSHIP
+                    ? FriendshipError.ALREADY_REQUESTED_FRIENDSHIP
                     : FriendshipError.ALREADY_REQUESTED_FRIEND;
             throw new FriendshipException(error);
         }

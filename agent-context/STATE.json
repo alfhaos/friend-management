@@ -6,6 +6,26 @@
   "pendingDecisions": [],
   "resolvedDecisions": [
     {
+      "id": "RPT-001",
+      "decision": "Use PDF JSON shape: received requests data has window, totalCount, items; both list item IDs use snake_case with no legacy aliases.",
+      "source": "2026-10-29 direct user decision: all A"
+    },
+    {
+      "id": "RPT-002",
+      "decision": "The over window includes only requests older than 90 days; the exact 90-day boundary is excluded.",
+      "source": "2026-10-29 direct user decision: all A"
+    },
+    {
+      "id": "RPT-003",
+      "decision": "Correct the public ALREADY_RREQUESTED_FRIENDSHIP typo and the already-friends response message.",
+      "source": "2026-10-29 direct user decision: all A"
+    },
+    {
+      "id": "RPT-004",
+      "decision": "Add full PostgreSQL DDL for a fresh empty database; keep runtime ddl-auto:update and existing data handling.",
+      "source": "2026-10-29 direct user decision: all A"
+    },
+    {
       "id": "S5-PROD-APPROVAL",
       "decision": "STEP5-PREPARATION.md에 제시한 LimitProperties, 신규 FriendLimitProperties, FriendServiceImpl, WebConfig, LimitInterceptor 설정·경로 수정 승인; 기존 limit.* 키와 HTTP/Redis 정책 유지",
       "source": "2026-10-27 사용자 직접 답변: 다 승인한다고"
@@ -126,7 +146,7 @@
       "source": "2026-10-22 사용자 직접 답변"
     }
   ],
-  "checkpointStatus": "full-refactor-published",
+  "checkpointStatus": "report-followup-validated",
   "currentStep": 6,
   "steps": [
     {
@@ -134,11 +154,31 @@
       "status": "complete",
       "evidence": "BACKEND_QUALITY_REVIEW.md section 21 and current lint/test/sampleDataClasses run: 17 tests, 0 failures, 0 skipped"
     },
-    { "number": 2, "status": "complete", "evidence": "2026-10-26 commit 1216e12 published to origin/refactor/backend-quality after final review and validation; 54 tests, 0 failures, 0 skipped" },
-    { "number": 3, "status": "complete", "evidence": "2026-10-26 staged core step-3 implementation independently approved by code and security reviewers; lint test sampleDataClasses exit 0; 63 tests, 0 failures, 0 skipped" },
-    { "number": 4, "status": "complete", "evidence": "2026-10-27 commit 2b0af40 published to origin/refactor/backend-quality after identical staged-tree independent code/security review and actual lint/test/sampleDataClasses; 74 tests, 0 failures/errors/skips" },
-    { "number": 5, "status": "complete", "evidence": "2026-10-28 commit 579d346 published to origin/refactor/backend-quality after identical staged-tree independent code/security review and actual lint/test/sampleDataClasses; 84 tests across 20 suites, 0 failures/errors/skips." },
-    { "number": 6, "status": "complete", "evidence": "2026-10-28 commit ef79016 published to origin/refactor/backend-quality after identical staged-tree independent code/security approval (tree 5eb3302c849bc1f270934f10343022376191dc31) and lint/test/sampleDataClasses; 20 suites, 85 tests, 0 failures/errors/skips." }
+    {
+      "number": 2,
+      "status": "complete",
+      "evidence": "2026-10-26 commit 1216e12 published to origin/refactor/backend-quality after final review and validation; 54 tests, 0 failures, 0 skipped"
+    },
+    {
+      "number": 3,
+      "status": "complete",
+      "evidence": "2026-10-26 staged core step-3 implementation independently approved by code and security reviewers; lint test sampleDataClasses exit 0; 63 tests, 0 failures, 0 skipped"
+    },
+    {
+      "number": 4,
+      "status": "complete",
+      "evidence": "2026-10-27 commit 2b0af40 published to origin/refactor/backend-quality after identical staged-tree independent code/security review and actual lint/test/sampleDataClasses; 74 tests, 0 failures/errors/skips"
+    },
+    {
+      "number": 5,
+      "status": "complete",
+      "evidence": "2026-10-28 commit 579d346 published to origin/refactor/backend-quality after identical staged-tree independent code/security review and actual lint/test/sampleDataClasses; 84 tests across 20 suites, 0 failures/errors/skips."
+    },
+    {
+      "number": 6,
+      "status": "complete",
+      "evidence": "2026-10-28 commit ef79016 published to origin/refactor/backend-quality after identical staged-tree independent code/security approval (tree 5eb3302c849bc1f270934f10343022376191dc31) and lint/test/sampleDataClasses; 20 suites, 85 tests, 0 failures/errors/skips."
+    }
   ],
   "maxParallelImplementers": 2,
   "noProgressLimit": 3,
@@ -146,7 +186,7 @@
   "publicationScope": "full-refactor",
   "publicationAttestation": "git-path:refactor-review.json",
   "openRequiredFindings": [],
-  "reviewStatus": "step-6-core-staged-tree-approved-and-published",
+  "reviewStatus": "report-followup-exact-staged-review-recorded-in-git-attestation",
   "currentValidation": [
     {
       "command": ".\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache",
@@ -362,12 +402,24 @@
       "command": "powershell -NoProfile -File scripts/publish-reviewed.ps1 -Scope full-refactor -AttestationPath .git/refactor-review.json -Message <Korean conventional commit message>",
       "exitCode": 0,
       "result": "2026-10-28; reviewed staged tree 5eb3302c849bc1f270934f10343022376191dc31; full lint/test/sampleDataClasses and pre-commit lint exit 0; commit ef79016 pushed to origin/refactor/backend-quality."
+    },
+    {
+      "command": ".\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache",
+      "exitCode": 0,
+      "result": "2026-10-29; report follow-up partial worktree based on HEAD afc3031: exact 1d boundary fix, Docker-free regression test and README/decision documentation. 21 suites, 86 tests, 0 failures/errors/skips, 9 tasks executed. Public API/schema decisions and staged-tree review remain."
+    },
+    {
+      "command": ".\\gradlew.bat lint test sampleDataClasses --rerun-tasks --no-build-cache",
+      "exitCode": 0,
+      "result": "2026-10-29; report follow-up full worktree based on HEAD afc3031: 22 suites, 93 tests, 0 failures/errors/skips; 9 tasks executed. Exact staged tree identifier and review are kept in Git internal attestation."
     }
   ],
   "notes": [
     "Step 2 was published in commit 1216e12; step 3 contract and production scope were approved on 2026-10-26. Step 3 implementation, validation, and core code/security reviews are complete.",
     "Prior WIP transfer is historical and did not itself complete step 2.",
     "Step 3 was published in commit 8064337, step 4 in commit 2b0af40, step 5 in commit 579d346, and step 6 in commit ef79016. Core step-6 tree 5eb3302c849bc1f270934f10343022376191dc31 passed independent code/security review, full tests, and the publication gate.",
-    "Final independent review must approve the exact staged tree; never store the attested tree hash inside this tracked file."
+    "Final independent review must approve the exact staged tree; never store the attested tree hash inside this tracked file.",
+    "Report follow-up began from ASSESSMENT_REPORT.md (REPORT.md was absent). The report is an untracked user file and stays outside publication. User resolved RPT-001 through RPT-004 as option A on 2026-10-29.",
+    "RPT-001 through RPT-004 implemented and full lint/test/sampleDataClasses passed on 2026-10-29; publication and independent staged-tree review are recorded separately in Git metadata."
   ]
 }
